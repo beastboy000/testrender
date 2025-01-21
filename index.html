@@ -5,100 +5,133 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Model Viewer</title>
     <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
-        #uploadButton { position: absolute; top: 10px; left: 10px; z-index: 100; }
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        #upload-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        input {
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
+    <div id="upload-container">
+        <label for="file-input">Upload 3D Model (.glb, .gltf, .obj):</label>
+        <input type="file" id="file-input" accept=".glb, .gltf, .obj" />
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r148/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/OBJLoader.js"></script>
 
-<input type="file" id="uploadButton" accept=".obj, .fbx, .glb, .gltf" />
-<canvas id="webgl-canvas"></canvas>
+    <script>
+        let scene, camera, renderer, model;
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/OrbitControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/OBJLoader.js"></script>
+        function init() {
+            // Set up the scene, camera, and renderer
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1, 5);
 
-<script>
-    // Set up scene, camera, renderer
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('webgl-canvas') });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
 
-    // Set up orbit controls
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.25;
-    controls.screenSpacePanning = false;
-    controls.maxPolarAngle = Math.PI / 2;
+            // Add lights
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(5, 5, 5).normalize();
+            scene.add(light);
 
-    // Lighting setup
-    const light = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(light);
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(5, 5, 5);
-    scene.add(directionalLight);
+            // Handle resizing
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
 
-    // Load 3D model
-    let currentModel = null;
-    function loadModel(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+            // Handle file upload
+            document.getElementById('file-input').addEventListener('change', loadModel);
 
-    const loader = new THREE.GLTFLoader();
-    const reader = new FileReader();
-
-    reader.onload = function (e) {
-        const contents = e.target.result;
-
-        loader.parse(
-            contents,
-            '', // Path is unnecessary because we are loading the file directly
-            function (gltf) {
-                if (model) {
-                    scene.remove(model); // Remove any previously loaded model
-                }
-                model = gltf.scene;
-                scene.add(model);
-            },
-            function (error) {
-                console.error('An error occurred while parsing the model:', error);
-            }
-        );
-    };
-
-    reader.readAsArrayBuffer(file); // Read the file as an ArrayBuffer
-}
-
-    // Handle file upload
-    document.getElementById('uploadButton').addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            loadModel(file);
+            animate();
         }
-    });
 
-    // Animate the scene
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-    }
+        function loadModel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-    camera.position.z = 5;
-    animate();
+            const extension = file.name.split('.').pop().toLowerCase();
 
-    // Adjust canvas size on window resize
-    window.addEventListener('resize', () => {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-    });
-</script>
+            if (extension === 'glb' || extension === 'gltf') {
+                loadGLTF(file);
+            } else if (extension === 'obj') {
+                loadOBJ(file);
+            } else {
+                alert('Unsupported file format. Please upload a .glb, .gltf, or .obj file.');
+            }
+        }
 
+        function loadGLTF(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const contents = e.target.result;
+
+                const loader = new THREE.GLTFLoader();
+                loader.parse(
+                    contents,
+                    '',
+                    function (gltf) {
+                        if (model) {
+                            scene.remove(model);
+                        }
+                        model = gltf.scene;
+                        scene.add(model);
+                    },
+                    function (error) {
+                        console.error('An error occurred while parsing the GLTF model:', error);
+                    }
+                );
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function loadOBJ(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const contents = e.target.result;
+
+                const loader = new THREE.OBJLoader();
+                const object = loader.parse(contents);
+
+                if (model) {
+                    scene.remove(model);
+                }
+                model = object;
+                scene.add(model);
+            };
+
+            reader.readAsText(file);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (model) {
+                model.rotation.y += 0.005;
+            }
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
 </body>
 </html>
