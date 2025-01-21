@@ -13,6 +13,7 @@
             align-items: center;
             background: #181818;
             color: #fff;
+            flex-direction: column;
         }
         #upload-container {
             position: absolute;
@@ -39,6 +40,13 @@
             display: none;
             color: #f39c12;
         }
+        #rendered-image {
+            margin-top: 20px;
+            max-width: 90%;
+            max-height: 80vh;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -49,12 +57,15 @@
         <span id="loading">Loading...</span>
     </div>
 
+    <canvas id="3d-canvas"></canvas>
+    <img id="rendered-image" style="display:none" alt="Rendered Image" />
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r148/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/OBJLoader.js"></script>
 
     <script>
-        let scene, camera, renderer, model, canvasElement;
+        let scene, camera, renderer, model;
 
         function init() {
             // Set up the scene, camera, and renderer
@@ -62,7 +73,7 @@
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 1, 5);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('3d-canvas') });
             renderer.setSize(window.innerWidth * 0.9, window.innerHeight * 0.9);
             renderer.setClearColor(0x000000); // Set background color to black
             document.body.appendChild(renderer.domElement);
@@ -162,15 +173,12 @@
             // Render the scene to a data URL (image)
             setTimeout(() => {  // Simulating loading delay
                 const dataURL = renderer.domElement.toDataURL();
-                const image = new Image();
+                const image = document.getElementById('rendered-image');
                 image.src = dataURL;
+                image.style.display = 'block';  // Make the image visible
 
                 // Hide loading prompt after rendering
                 document.getElementById('loading').style.display = 'none';
-
-                // Open the image in a new tab (optional)
-                const newTab = window.open();
-                newTab.document.body.appendChild(image);
             }, 500); // Simulated delay
         }
 
