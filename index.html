@@ -45,31 +45,34 @@
 
     // Load 3D model
     let currentModel = null;
-    function loadModel(file) {
-        const loader = new THREE.GLTFLoader();
-        if (file.type === "model/gltf-binary" || file.name.endsWith(".glb") || file.name.endsWith(".gltf")) {
-            loader.load(URL.createObjectURL(file), (gltf) => {
-                if (currentModel) {
-                    scene.remove(currentModel);
+    function loadModel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const loader = new THREE.GLTFLoader();
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        const contents = e.target.result;
+
+        loader.parse(
+            contents,
+            '', // Path is unnecessary because we are loading the file directly
+            function (gltf) {
+                if (model) {
+                    scene.remove(model); // Remove any previously loaded model
                 }
-                currentModel = gltf.scene;
-                scene.add(currentModel);
-                currentModel.scale.set(1, 1, 1);  // Adjust scale
-                currentModel.position.set(0, 0, 0);
-            });
-        } else if (file.name.endsWith(".obj")) {
-            const objLoader = new THREE.OBJLoader();
-            objLoader.load(URL.createObjectURL(file), (obj) => {
-                if (currentModel) {
-                    scene.remove(currentModel);
-                }
-                currentModel = obj;
-                scene.add(currentModel);
-                currentModel.scale.set(1, 1, 1);
-                currentModel.position.set(0, 0, 0);
-            });
-        }
-    }
+                model = gltf.scene;
+                scene.add(model);
+            },
+            function (error) {
+                console.error('An error occurred while parsing the model:', error);
+            }
+        );
+    };
+
+    reader.readAsArrayBuffer(file); // Read the file as an ArrayBuffer
+}
 
     // Handle file upload
     document.getElementById('uploadButton').addEventListener('change', (event) => {
