@@ -22,15 +22,22 @@
             padding: 15px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
         }
-        input {
+        input, button {
             font-size: 16px;
+            margin-bottom: 10px;
         }
         canvas {
             border: 2px solid #fff;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            background: #000; /* Black background for visibility */
+            background: #000;
+        }
+        #loading {
+            display: none;
+            color: #f39c12;
         }
     </style>
 </head>
@@ -38,13 +45,16 @@
     <div id="upload-container">
         <label for="file-input">Upload 3D Model (.glb, .gltf, .obj):</label>
         <input type="file" id="file-input" accept=".glb, .gltf, .obj" />
+        <button id="render-btn">Render Image</button>
+        <span id="loading">Loading...</span>
     </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r148/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/OBJLoader.js"></script>
 
     <script>
-        let scene, camera, renderer, model;
+        let scene, camera, renderer, model, canvasElement;
 
         function init() {
             // Set up the scene, camera, and renderer
@@ -80,6 +90,9 @@
 
             // Handle file upload
             document.getElementById('file-input').addEventListener('change', loadModel);
+
+            // Handle render button click
+            document.getElementById('render-btn').addEventListener('click', renderImage);
 
             animate();
         }
@@ -140,6 +153,25 @@
             };
 
             reader.readAsText(file);
+        }
+
+        function renderImage() {
+            // Show loading prompt
+            document.getElementById('loading').style.display = 'inline';
+
+            // Render the scene to a data URL (image)
+            setTimeout(() => {  // Simulating loading delay
+                const dataURL = renderer.domElement.toDataURL();
+                const image = new Image();
+                image.src = dataURL;
+
+                // Hide loading prompt after rendering
+                document.getElementById('loading').style.display = 'none';
+
+                // Open the image in a new tab (optional)
+                const newTab = window.open();
+                newTab.document.body.appendChild(image);
+            }, 500); // Simulated delay
         }
 
         function animate() {
