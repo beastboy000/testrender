@@ -3,18 +3,19 @@ name: Build and Deploy Jekyll site to GitHub Pages
 on:
   push:
     branches:
-      - main  # Trigger when pushing to the main branch
+      - main
+
+permissions:
+  contents: write  # Allow pushing to the repository
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Step 2: Set up Ruby and install dependencies
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -25,14 +26,12 @@ jobs:
           gem install bundler
           bundle install
 
-      # Step 3: Build the Jekyll site
       - name: Build the site with Jekyll
         run: |
           bundle exec jekyll build --source docs --destination docs/_site
 
-      # Step 4: Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/_site  # Specify the output directory
+          publish_dir: docs/_site
