@@ -46,6 +46,13 @@
         #render-btn {
             margin-top: 20px;
         }
+
+        #hover-box {
+            position: absolute;
+            border: 2px solid #ff0000;
+            pointer-events: none;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -71,6 +78,8 @@
         </tbody>
     </table>
 
+    <div id="hover-box"></div>
+
     <script>
         const renderBtn = document.getElementById('render-btn');
         const imageInput = document.getElementById('image-input');
@@ -78,27 +87,59 @@
         const ctx = canvas.getContext('2d');
         const regionTable = document.getElementById('region-table').getElementsByTagName('tbody')[0];
         const colorInput = document.getElementById('color-input');
+        const hoverBox = document.getElementById('hover-box');
 
         let img = new Image();
         let regions = [];
         let selectedRegion = null;
         let selectedColor = colorInput.value;
+        let pixelData = null;
+
+        const colorThreshold = 50;  // Threshold for detecting color changes (higher = more sensitive)
+
+        // Variable to track if the image is uploaded but not yet rendered
+        let imageReady = false;
+
+        // Handle image input change (image upload)
+        imageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.onload = function() {
+                        // Set imageReady to true after the image is loaded
+                        imageReady = true;
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
 
         renderBtn.addEventListener('click', () => {
+            if (!imageReady) {
+                alert('Please upload an image first!');
+                return;
+            }
+
             regionTable.innerHTML = ''; // Clear the table
             regionTable.style.display = 'block'; // Show the table
 
-            // Draw the image to the canvas
+            // Clear the canvas before drawing the image
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw the uploaded image on the canvas
+            canvas.width = img.width;
+            canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
 
-            // Create regions based on detected areas or create manual regions
-            // For simplicity, we'll create a sample region for testing
-            regions = [
-                { x: 50, y: 50, width: 100, height: 100, color: '#ff0000', name: 'Region 1' },
-                { x: 200, y: 150, width: 150, height: 100, color: '#00ff00', name: 'Region 2' }
-            ];
+            // Get image pixel data
+            pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+            // Detect color changes and create regions
+            detectColorChanges();
+
+            // Draw borders for detected regions
             regions.forEach(region => {
                 ctx.strokeStyle = region.color;
                 ctx.lineWidth = 2;
@@ -153,6 +194,33 @@
                     }
                 });
             });
+
+            // Hover effect
+            canvas.addEventListener('mousemove', (event) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+
+                let hoverRegion = null;
+                regions.forEach((region) => {
+                    if (
+                        x >= region.x && x <= region.x + region.width &&
+                        y >= region.y && y <= region.y + region.height
+                    ) {
+                        hoverRegion = region;
+                    }
+                });
+
+                if (hoverRegion) {
+                    hoverBox.style.display = 'block';
+                    hoverBox.style.left = `${hoverRegion.x}px`;
+                    hoverBox.style.top = `${hoverRegion.y}px`;
+                    hoverBox.style.width = `${hoverRegion.width}px`;
+                    hoverBox.style.height = `${hoverRegion.height}px`;
+                } else {
+                    hoverBox.style.display = 'none';
+                }
+            });
         });
 
         // Handle color input change
@@ -164,35 +232,58 @@
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0);
                 regions.forEach(r => {
-                    if (r !== selectedRegion) {
-                        ctx.strokeStyle = r.color;
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(r.x, r.y, r.width, r.height);
-                    }
+                    ctx.strokeStyle = r.color;
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(r.x, r.y, r.width, r.height);
                 });
-                ctx.strokeStyle = 'blue';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(selectedRegion.x, selectedRegion.y, selectedRegion.width, selectedRegion.height);
             }
         });
 
-        // Handle image input change (image upload)
-        imageInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    img.onload = function() {
-                        // Resize canvas to fit the image
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0);
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
+        function detectColorChanges() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const threshold = colorThreshold;
+            const regions = [];
+
+            // Loop through all pixels and compare color differences
+            for (let y = 0; y < height - 1; y++) {
+                for (let x = 0; x < width - 1; x++) {
+                    const pixelIndex = (y * width + x) * 4;
+
+                    const r = pixelData.data[pixelIndex];
+                    const g = pixelData.data[pixelIndex + 1];
+                    const b = pixelData.data[pixelIndex + 2];
+
+                    const rightPixelIndex = (y * width + x + 1) * 4;
+                    const bottomPixelIndex = ((y + 1) * width + x) * 4;
+
+                    const rRight = pixelData.data[rightPixelIndex];
+                    const gRight = pixelData.data[rightPixelIndex + 1];
+                    const bRight = pixelData.data[rightPixelIndex + 2];
+
+                    const rBottom = pixelData.data[bottomPixelIndex];
+                    const gBottom = pixelData.data[bottomPixelIndex + 1];
+                    const bBottom = pixelData.data[bottomPixelIndex + 2];
+
+                    // Calculate color differences
+                    const colorDiffRight = Math.abs(r - rRight) + Math.abs(g - gRight) + Math.abs(b - bRight);
+                    const colorDiffBottom = Math.abs(r - rBottom) + Math.abs(g - gBottom) + Math.abs(b - bBottom);
+
+                    if (colorDiffRight > threshold || colorDiffBottom > threshold) {
+                        regions.push({
+                            x: x,
+                            y: y,
+                            width: 10, // Arbitrary region size for illustration
+                            height: 10, // Arbitrary region size for illustration
+                            color: `rgb(${r},${g},${b})`
+                        });
+                    }
+                }
             }
-        });
+
+            // Save the detected regions
+            regions.push(...regions);
+        }
     </script>
 
 </body>
