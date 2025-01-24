@@ -21,6 +21,7 @@
         canvas {
             border: 2px solid #ddd;
             margin-bottom: 20px;
+            cursor: pointer;
         }
         table {
             width: 80%;
@@ -37,6 +38,10 @@
         th {
             background-color: #f2f2f2;
         }
+        .color-picker {
+            padding: 5px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -50,7 +55,7 @@
     <table id="region-table">
         <thead>
             <tr>
-                <th>Region ID</th>
+                <th>Region Name</th>
                 <th>Color</th>
                 <th>Position (X, Y)</th>
                 <th>Size (Width, Height)</th>
@@ -66,8 +71,9 @@
         const fileInput = document.getElementById('file-input');
         const regionTable = document.getElementById('region-table').getElementsByTagName('tbody')[0];
         let img = new Image();
-        let regions = []; // Array to hold the detected regions
-        let regionCounter = 1; // To assign region IDs automatically
+        let regions = []; // Array to hold the detected clickable areas
+        let selectedRegion = null;
+        let regionCounter = 1; // Region ID counter for uniqueness
 
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -143,6 +149,31 @@
                 ctx.lineWidth = 2;
                 ctx.strokeRect(region.x, region.y, region.width, region.height);
             });
+
+            canvas.addEventListener('click', (event) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+
+                // Check if a region is clicked
+                regions.forEach(region => {
+                    if (x >= region.x && x <= region.x + region.width &&
+                        y >= region.y && y <= region.y + region.height) {
+                        // Store the selected region
+                        selectedRegion = region;
+
+                        // Prompt for region name
+                        const regionName = prompt('Enter a name for this region:');
+
+                        // Add the name and other details to the table
+                        const row = regionTable.insertRow();
+                        row.insertCell(0).textContent = regionName;
+                        row.insertCell(1).textContent = `#${Math.floor(Math.random()*16777215).toString(16)}`;
+                        row.insertCell(2).textContent = `${region.x}, ${region.y}`;
+                        row.insertCell(3).textContent = `${region.width}, ${region.height}`;
+                    }
+                });
+            });
         }
 
         function getPixel(x, y, data, width) {
@@ -203,7 +234,7 @@
             regionTable.innerHTML = ''; // Clear the table
             regions.forEach(region => {
                 const row = regionTable.insertRow();
-                row.insertCell(0).textContent = region.id; // Region ID
+                row.insertCell(0).textContent = `Region ${region.id}`; // Region ID
                 row.insertCell(1).textContent = `#${Math.floor(Math.random()*16777215).toString(16)}`; // Random color
                 row.insertCell(2).textContent = `${region.x}, ${region.y}`; // Position (X, Y)
                 row.insertCell(3).textContent = `${region.width}, ${region.height}`; // Size (Width, Height)
