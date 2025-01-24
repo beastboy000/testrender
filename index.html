@@ -163,6 +163,7 @@
                 colorButton.addEventListener('click', () => {
                     selectedRegion = region;
                     colorInput.value = selectedRegion.color; // Set the color input to the current region color
+                    colorInput.dispatchEvent(new Event('input')); // Trigger the input event to immediately update the color
                 });
                 actionCell.appendChild(colorButton);
             }
@@ -176,12 +177,14 @@
                 // Redraw all regions with updated colors
                 redrawCanvas();
                 
-                // Update the region's fill color in the table as well
+                // Update the region's color in the table
                 const rows = regionTable.rows;
                 for (let i = 0; i < rows.length; i++) {
                     if (rows[i].cells[0].textContent === selectedRegion.name) {
                         rows[i].cells[1].textContent = `${selectedRegion.x}, ${selectedRegion.y}`;
                         rows[i].cells[2].textContent = `${selectedRegion.width}, ${selectedRegion.height}`;
+                        // Add color information to the table (Optional, if you want to show color directly)
+                        rows[i].cells[3].textContent = `Color: ${selectedRegion.color}`;
                     }
                 }
             }
