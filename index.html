@@ -73,7 +73,6 @@
         let img = new Image();
         let regions = []; // Array to hold the detected clickable areas
         let selectedRegion = null;
-        let regionCounter = 1; // Region ID counter for uniqueness
 
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -140,9 +139,6 @@
                 }
             }
 
-            // Display the regions in the table
-            displayRegionsInTable();
-
             // Draw the regions on the canvas
             regions.forEach(region => {
                 ctx.strokeStyle = 'red';
@@ -150,6 +146,10 @@
                 ctx.strokeRect(region.x, region.y, region.width, region.height);
             });
 
+            // Display the regions in the table
+            displayRegionsInTable();
+
+            // Enable the region selection
             canvas.addEventListener('click', (event) => {
                 const rect = canvas.getBoundingClientRect();
                 const x = event.clientX - rect.left;
@@ -188,7 +188,7 @@
 
         // Flood fill to group pixels into a single region
         function floodFill(x, y, width, height, visited, data, threshold) {
-            const region = { id: regionCounter++, x: x, y: y, width: 1, height: 1 };
+            const region = { x: x, y: y, width: 1, height: 1 };
             const stack = [{ x, y }];
             const pixels = [];
 
@@ -234,7 +234,7 @@
             regionTable.innerHTML = ''; // Clear the table
             regions.forEach(region => {
                 const row = regionTable.insertRow();
-                row.insertCell(0).textContent = `Region ${region.id}`; // Region ID
+                row.insertCell(0).textContent = `Region ${regions.indexOf(region) + 1}`; // Region ID
                 row.insertCell(1).textContent = `#${Math.floor(Math.random()*16777215).toString(16)}`; // Random color
                 row.insertCell(2).textContent = `${region.x}, ${region.y}`; // Position (X, Y)
                 row.insertCell(3).textContent = `${region.width}, ${region.height}`; // Size (Width, Height)
