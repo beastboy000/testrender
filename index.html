@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warehouse Image Mapping</title>
+    <title>Interactive Image Regions</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -121,7 +121,7 @@
             const y = event.clientY - rect.top;
 
             // Check if a region is clicked
-            regions.forEach((region, index) => {
+            regions.forEach((region) => {
                 if (
                     x >= region.x && x <= region.x + region.width &&
                     y >= region.y && y <= region.y + region.height
@@ -196,29 +196,62 @@
             const imageData = ctx.getImageData(0, 0, width, height);
             const data = imageData.data;
 
-            // Detect color changes and create regions
-            for (let y = 0; y < height - 1; y++) {
-                for (let x = 0; x < width - 1; x++) {
-                    const i = (y * width + x) * 4;
+            // 2D array to track visited pixels
+            const visited = Array(height).fill().map(() => Array(width).fill(false));
+
+            // Flood fill function to detect connected regions
+            function floodFill(x, y, color, region) {
+                const stack = [[x, y]];
+                const colorDifference = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+
+                while (stack.length > 0) {
+                    const [cx, cy] = stack.pop();
+                    if (visited[cy][cx]) continue;
+                    visited[cy][cx] = true;
+
+                    const i = (cy * width + cx) * 4;
                     const r = data[i];
                     const g = data[i + 1];
                     const b = data[i + 2];
 
-                    // Check for color differences with the adjacent pixel to the right
-                    const iRight = (y * width + (x + 1)) * 4;
-                    const rRight = data[iRight];
-                    const gRight = data[iRight + 1];
-                    const bRight = data[iRight + 2];
+                    // If the color difference is too large, stop flooding
+                    if (colorDifference([r, g, b], color) > threshold) {
+                        continue;
+                    }
 
-                    const colorDiffRight = Math.abs(r - rRight) + Math.abs(g - gRight) + Math.abs(b - bRight);
-                    if (colorDiffRight > threshold) {
-                        regions.push({
-                            x: x,
-                            y: y,
-                            width: 10,
-                            height: 10,
-                            color: `rgb(${r},${g},${b})`
-                        });
+                    region.push([cx, cy]);
+
+                    // Check neighboring pixels
+                    if (cx > 0) stack.push([cx - 1, cy]);
+                    if (cx < width - 1) stack.push([cx + 1, cy]);
+                    if (cy > 0) stack.push([cx, cy - 1]);
+                    if (cy < height - 1) stack.push([cx, cy + 1]);
+                }
+            }
+
+            // Start flood fill from each unvisited pixel
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (!visited[y][x]) {
+                        const i = (y * width + x) * 4;
+                        const color = [data[i], data[i + 1], data[i + 2]];
+                        const region = [];
+                        floodFill(x, y, color, region);
+
+                        if (region.length > 0) {
+                            // Calculate bounding box
+                            const minX = Math.min(...region.map(p => p[0]));
+                            const maxX = Math.max(...region.map(p => p[0]));
+                            const minY = Math.min(...region.map(p => p[1]));
+                            const maxY = Math.max(...region.map(p => p[1]));
+                            regions.push({
+                                x: minX,
+                                y: minY,
+                                width: maxX - minX,
+                                height: maxY - minY,
+                                color: `rgb(${color[0]},${color[1]},${color[2]})`
+                            });
+                        }
                     }
                 }
             }
