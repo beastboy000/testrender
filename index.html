@@ -42,9 +42,6 @@
             padding: 5px;
             margin-top: 10px;
         }
-        .selected-region {
-            border: 2px solid blue;
-        }
     </style>
 </head>
 <body>
@@ -63,7 +60,7 @@
     <table id="region-table">
         <thead>
             <tr>
-                <th>Region Name</th>
+                <th>Region ID</th>
                 <th>Color</th>
                 <th>Position (X, Y)</th>
                 <th>Size (Width, Height)</th>
@@ -82,9 +79,7 @@
         let img = new Image();
         let regions = []; // Array to hold the detected clickable areas
         let selectedColor = colorInput.value; // Color for the regions
-        let selectedRegion = null; // Store the currently selected region for click and resize
-        let isDragging = false;
-        let dragOffsetX, dragOffsetY;
+        let regionCounter = 1; // To assign region IDs automatically
 
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -142,7 +137,14 @@
                     const magnitude = Math.sqrt(gx * gx + gy * gy);
                     if (magnitude > threshold) {
                         // Highlight the area with significant color change (edge)
-                        const region = { x, y, width: 10, height: 10, color: selectedColor };
+                        const region = { 
+                            id: regionCounter++, // Automatically assign an ID
+                            x, 
+                            y, 
+                            width: 10, 
+                            height: 10, 
+                            color: selectedColor 
+                        };
                         regions.push(region);
 
                         // Draw a border around the detected area
@@ -152,6 +154,9 @@
                     }
                 }
             }
+
+            // Display the regions in the table
+            displayRegionsInTable();
         }
 
         function getPixel(x, y, data, width) {
@@ -164,69 +169,26 @@
             };
         }
 
-        // Handle the click event to assign a name to the selected region
-        canvas.addEventListener('click', (event) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-
-            regions.forEach((region, index) => {
-                if (
-                    x >= region.x && x <= region.x + region.width &&
-                    y >= region.y && y <= region.y + region.height
-                ) {
-                    selectedRegion = region;
-                    selectedRegion.index = index;
-
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0);
-                    regions.forEach(r => {
-                        if (r !== selectedRegion) {
-                            ctx.strokeStyle = 'red';
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(r.x, r.y, r.width, r.height);
-                        }
-                    });
-                    ctx.strokeStyle = 'blue';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(selectedRegion.x, selectedRegion.y, selectedRegion.width, selectedRegion.height);
-
-                    const regionName = prompt('Enter a name for this region:');
-
-                    // Add the name and color to the table
-                    const row = regionTable.insertRow();
-                    row.insertCell(0).textContent = regionName;
-                    row.insertCell(1).textContent = selectedColor;
-                    row.insertCell(2).textContent = `${selectedRegion.x}, ${selectedRegion.y}`;
-                    row.insertCell(3).textContent = `${selectedRegion.width}, ${selectedRegion.height}`;
-                }
+        // Display regions in the table
+        function displayRegionsInTable() {
+            regionTable.innerHTML = ''; // Clear the table
+            regions.forEach(region => {
+                const row = regionTable.insertRow();
+                row.insertCell(0).textContent = region.id; // Region ID
+                row.insertCell(1).textContent = region.color; // Color
+                row.insertCell(2).textContent = `${region.x}, ${region.y}`; // Position (X, Y)
+                row.insertCell(3).textContent = `${region.width}, ${region.height}`; // Size (Width, Height)
             });
-        });
+        }
 
         // Handle color change event
         colorInput.addEventListener('input', (event) => {
             selectedColor = event.target.value;
-            if (selectedRegion) {
-                selectedRegion.color = selectedColor;
-                redraw();
-            }
-        });
-
-        // Redraw canvas (e.g., after a region is clicked)
-        function redraw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-            regions.forEach(r => {
-                if (r !== selectedRegion) {
-                    ctx.strokeStyle = 'red';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(r.x, r.y, r.width, r.height);
-                }
+            regions.forEach(region => {
+                region.color = selectedColor;
             });
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(selectedRegion.x, selectedRegion.y, selectedRegion.width, selectedRegion.height);
-        }
+            displayRegionsInTable(); // Update the table with new colors
+        });
     </script>
 </body>
 </html>
