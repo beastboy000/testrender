@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Mapping</title>
+    <title>Interactive Image Regions</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -188,7 +188,7 @@
         function detectColorChanges() {
             const width = canvas.width;
             const height = canvas.height;
-            const threshold = 50; // Threshold for detecting significant color change (lower threshold)
+            const threshold = 30; // Threshold for detecting significant color change (adjust as needed)
             regions = []; // Clear previous regions
 
             const imageData = ctx.getImageData(0, 0, width, height);
