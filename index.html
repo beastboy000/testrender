@@ -21,7 +21,6 @@
         canvas {
             border: 2px solid #ddd;
             margin-bottom: 20px;
-            cursor: pointer;
         }
         table {
             width: 80%;
@@ -38,10 +37,6 @@
         th {
             background-color: #f2f2f2;
         }
-        .color-picker {
-            padding: 5px;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
@@ -51,11 +46,6 @@
     </div>
 
     <canvas id="image-canvas"></canvas>
-
-    <div class="color-picker">
-        <label for="color-input">Select Color for Region:</label>
-        <input type="color" id="color-input" value="#ff0000" />
-    </div>
 
     <table id="region-table">
         <thead>
@@ -74,11 +64,9 @@
         const canvas = document.getElementById('image-canvas');
         const ctx = canvas.getContext('2d');
         const fileInput = document.getElementById('file-input');
-        const colorInput = document.getElementById('color-input');
         const regionTable = document.getElementById('region-table').getElementsByTagName('tbody')[0];
         let img = new Image();
         let regions = []; // Array to hold the detected regions
-        let selectedColor = colorInput.value; // Color for the regions
         let regionCounter = 1; // To assign region IDs automatically
 
         fileInput.addEventListener('change', (event) => {
@@ -105,6 +93,8 @@
             const width = canvas.width;
             const height = canvas.height;
             const threshold = 40; // Define the color change threshold
+            const visited = Array(height).fill().map(() => Array(width).fill(false));
+
             regions = []; // Clear previous regions
 
             // Sobel filter kernels for detecting gradients
@@ -118,8 +108,6 @@
                 [0, 0, 0],
                 [1, 2, 1]
             ];
-
-            let visited = Array(height).fill().map(() => Array(width).fill(false));
 
             // Loop through the image pixels
             for (let y = 1; y < height - 1; y++) {
@@ -140,7 +128,6 @@
                     // Calculate the gradient magnitude
                     const magnitude = Math.sqrt(gx * gx + gy * gy);
                     if (magnitude > threshold) {
-                        // Create a region and mark pixels as visited
                         const region = floodFill(x, y, width, height, visited, data, threshold);
                         regions.push(region);
                     }
@@ -150,7 +137,7 @@
             // Display the regions in the table
             displayRegionsInTable();
 
-            // Draw the regions
+            // Draw the regions on the canvas
             regions.forEach(region => {
                 ctx.strokeStyle = 'red';
                 ctx.lineWidth = 2;
@@ -170,7 +157,7 @@
 
         // Flood fill to group pixels into a single region
         function floodFill(x, y, width, height, visited, data, threshold) {
-            const region = { id: regionCounter++, x: x, y: y, width: 1, height: 1, color: generateUniqueColor() };
+            const region = { id: regionCounter++, x: x, y: y, width: 1, height: 1 };
             const stack = [{ x, y }];
             const pixels = [];
 
@@ -187,8 +174,8 @@
                         const nx = x + dx;
                         const ny = y + dy;
                         if (nx >= 0 && nx < width && ny >= 0 && ny < height && !visited[ny][nx]) {
-                            const gx = getPixel(nx, ny, data, width);
-                            const magnitude = Math.sqrt(gx.r * gx.r + gx.g * gx.g + gx.b * gx.b);
+                            const pixel = getPixel(nx, ny, data, width);
+                            const magnitude = Math.sqrt(pixel.r * pixel.r + pixel.g * pixel.g + pixel.b * pixel.b);
                             if (magnitude > threshold) {
                                 stack.push({ x: nx, y: ny });
                             }
@@ -211,31 +198,17 @@
             return region;
         }
 
-        // Generate a random color for each region
-        function generateUniqueColor() {
-            return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-        }
-
         // Display regions in the table
         function displayRegionsInTable() {
             regionTable.innerHTML = ''; // Clear the table
             regions.forEach(region => {
                 const row = regionTable.insertRow();
                 row.insertCell(0).textContent = region.id; // Region ID
-                row.insertCell(1).textContent = region.color; // Color
+                row.insertCell(1).textContent = `#${Math.floor(Math.random()*16777215).toString(16)}`; // Random color
                 row.insertCell(2).textContent = `${region.x}, ${region.y}`; // Position (X, Y)
                 row.insertCell(3).textContent = `${region.width}, ${region.height}`; // Size (Width, Height)
             });
         }
-
-        // Handle color change event
-        colorInput.addEventListener('input', (event) => {
-            selectedColor = event.target.value;
-            regions.forEach(region => {
-                region.color = selectedColor;
-            });
-            displayRegionsInTable(); // Update the table with new colors
-        });
     </script>
 </body>
 </html>
