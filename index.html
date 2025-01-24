@@ -170,7 +170,7 @@
 
         // Flood fill to group pixels into a single region
         function floodFill(x, y, width, height, visited, data, threshold) {
-            const region = { id: regionCounter++, x: x, y: y, width: 1, height: 1, color: selectedColor };
+            const region = { id: regionCounter++, x: x, y: y, width: 1, height: 1, color: generateUniqueColor() };
             const stack = [{ x, y }];
             const pixels = [];
 
@@ -209,6 +209,11 @@
             region.height = maxY - minY + 1;
 
             return region;
+        }
+
+        // Generate a random color for each region
+        function generateUniqueColor() {
+            return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
         }
 
         // Display regions in the table
