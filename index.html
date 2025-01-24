@@ -27,7 +27,7 @@
             width: 80%;
             margin: 0 auto;
             border-collapse: collapse;
-            display: none;
+            display: block;
         }
 
         #region-table th, #region-table td {
@@ -46,16 +46,12 @@
             display: none;
         }
 
-        #render-btn {
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
 
     <div id="upload-container">
         <input type="file" id="image-input" accept="image/*">
-        <button id="render-btn">Render Image</button>
     </div>
 
     <canvas id="canvas"></canvas>
@@ -75,7 +71,6 @@
     <div id="hover-box"></div>
 
     <script>
-        const renderBtn = document.getElementById('render-btn');
         const imageInput = document.getElementById('image-input');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -86,9 +81,6 @@
         let regions = [];
         let selectedRegion = null;
 
-        // Variable to track if the image is uploaded and ready to render
-        let imageReady = false;
-
         // Handle image input change (image upload)
         imageInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -96,42 +88,30 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     img.onload = function() {
-                        imageReady = true;
+                        // Clear previous content
+                        regionTable.innerHTML = ''; // Clear the table
+                        regionTable.style.display = 'block'; // Show the table by default
+
+                        // Clear the canvas and draw the new image
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+
+                        // Detect color changes and create regions
+                        detectColorChanges();
+
+                        // Draw borders for detected regions
+                        regions.forEach(region => {
+                            ctx.strokeStyle = region.color;
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(region.x, region.y, region.width, region.height);
+                        });
                     };
                     img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
-        });
-
-        renderBtn.addEventListener('click', () => {
-            if (!imageReady) {
-                alert('Please upload an image first!');
-                return;
-            }
-
-            // Clear previous content
-            regionTable.innerHTML = ''; // Clear the table
-            regionTable.style.display = 'none'; // Hide table before rendering
-
-            // Clear the canvas and draw the new image
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-
-            // Detect color changes and create regions
-            detectColorChanges();
-
-            // Draw borders for detected regions
-            regions.forEach(region => {
-                ctx.strokeStyle = region.color;
-                ctx.lineWidth = 2;
-                ctx.strokeRect(region.x, region.y, region.width, region.height);
-            });
-
-            // Show the table once regions are created
-            regionTable.style.display = 'block';
         });
 
         // Handle canvas click to select regions
