@@ -63,22 +63,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r148/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/OBJLoader.js"></script>
-
+    
     <script>
-        let scene, camera, renderer, model;
+        let scene, camera, renderer, model, controls;
+        let boundingBox;
 
         function init() {
-            // Set up the scene, camera, and renderer
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 1, 5);
-
+            
             renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('3d-canvas') });
             renderer.setSize(window.innerWidth * 0.9, window.innerHeight * 0.9);
-            renderer.setClearColor(0x000000); // Set background color to black
+            renderer.setClearColor(0x000000);
             document.body.appendChild(renderer.domElement);
 
-            // Add lights
             const light = new THREE.DirectionalLight(0xffffff, 1);
             light.position.set(5, 5, 5).normalize();
             scene.add(light);
@@ -86,23 +85,18 @@
             const ambientLight = new THREE.AmbientLight(0x404040);
             scene.add(ambientLight);
 
-            // Add a placeholder cube if no model is loaded
             const placeholderGeometry = new THREE.BoxGeometry(1, 1, 1);
             const placeholderMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
             model = new THREE.Mesh(placeholderGeometry, placeholderMaterial);
             scene.add(model);
 
-            // Handle resizing
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth * 0.9, window.innerHeight * 0.9);
             });
 
-            // Handle file upload
             document.getElementById('file-input').addEventListener('change', loadModel);
-
-            // Handle render button click
             document.getElementById('render-btn').addEventListener('click', renderImage);
 
             animate();
@@ -113,6 +107,7 @@
             if (!file) return;
 
             const extension = file.name.split('.').pop().toLowerCase();
+            document.getElementById('loading').style.display = 'inline';
 
             if (extension === 'glb' || extension === 'gltf') {
                 loadGLTF(file);
@@ -127,24 +122,19 @@
             const reader = new FileReader();
             reader.onload = function (e) {
                 const contents = e.target.result;
-
                 const loader = new THREE.GLTFLoader();
-                loader.parse(
-                    contents,
-                    '',
-                    function (gltf) {
-                        if (model) {
-                            scene.remove(model);
-                        }
-                        model = gltf.scene;
-                        scene.add(model);
-                    },
-                    function (error) {
-                        console.error('An error occurred while parsing the GLTF model:', error);
+                loader.parse(contents, '', function (gltf) {
+                    if (model) {
+                        scene.remove(model);
                     }
-                );
+                    model = gltf.scene;
+                    scene.add(model);
+                    adjustCameraAndLighting(model);
+                }, function (error) {
+                    console.error('Error parsing GLTF model:', error);
+                });
+                document.getElementById('loading').style.display = 'none';
             };
-
             reader.readAsArrayBuffer(file);
         }
 
@@ -152,34 +142,41 @@
             const reader = new FileReader();
             reader.onload = function (e) {
                 const contents = e.target.result;
-
                 const loader = new THREE.OBJLoader();
                 const object = loader.parse(contents);
-
                 if (model) {
                     scene.remove(model);
                 }
                 model = object;
                 scene.add(model);
+                adjustCameraAndLighting(model);
+                document.getElementById('loading').style.display = 'none';
             };
-
             reader.readAsText(file);
         }
 
-        function renderImage() {
-            // Show loading prompt
-            document.getElementById('loading').style.display = 'inline';
+        function adjustCameraAndLighting(model) {
+            // Get bounding box of the model to adjust camera
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3()).length();
+            const center = box.getCenter(new THREE.Vector3());
 
-            // Render the scene to a data URL (image)
-            setTimeout(() => {  // Simulating loading delay
-                const dataURL = renderer.domElement.toDataURL();
+            camera.position.set(center.x, center.y, size * 1.5);  // Camera distance based on model size
+            camera.lookAt(center);
+            
+            // Create bounding box for model rotation and sizing
+            boundingBox = box;
+        }
+
+        function renderImage() {
+            document.getElementById('loading').style.display = 'inline';
+            setTimeout(() => {  // Simulate rendering delay
+                const dataURL = renderer.domElement.toDataURL('image/png');
                 const image = document.getElementById('rendered-image');
                 image.src = dataURL;
-                image.style.display = 'block';  // Make the image visible
-
-                // Hide loading prompt after rendering
+                image.style.display = 'block';
                 document.getElementById('loading').style.display = 'none';
-            }, 500); // Simulated delay
+            }, 500);
         }
 
         function animate() {
