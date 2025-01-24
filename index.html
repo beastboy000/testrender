@@ -45,13 +45,18 @@
         .selected-region {
             border: 2px solid blue;
         }
+        #hover-box {
+            position: absolute;
+            border: 2px dashed red;
+            pointer-events: none;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div id="upload-container">
         <label for="file-input">Upload Image (.jpg, .png):</label>
         <input type="file" id="file-input" accept="image/*" />
-        <button id="render-btn" style="display:none;">Render Image</button>
     </div>
 
     <canvas id="image-canvas"></canvas>
@@ -74,19 +79,20 @@
         </tbody>
     </table>
 
+    <div id="hover-box"></div>
+
     <script>
         const canvas = document.getElementById('image-canvas');
         const ctx = canvas.getContext('2d');
         const fileInput = document.getElementById('file-input');
-        const renderBtn = document.getElementById('render-btn');
         const colorInput = document.getElementById('color-input');
         const regionTable = document.getElementById('region-table').getElementsByTagName('tbody')[0];
+        const hoverBox = document.getElementById('hover-box');
         let img = new Image();
-        let regions = []; // Array to hold the detected clickable areas
-        let selectedColor = colorInput.value; // Color for the regions
-        let selectedRegion = null; // Store the currently selected region for drag/resize
+        let regions = [];
+        let selectedColor = colorInput.value;
+        let selectedRegion = null;
         let isDragging = false;
-        let isResizing = false;
         let dragOffsetX, dragOffsetY;
 
         fileInput.addEventListener('change', (event) => {
@@ -98,7 +104,7 @@
                         canvas.width = img.width;
                         canvas.height = img.height;
                         ctx.drawImage(img, 0, 0);
-                        detectEdges(); // Start edge detection when the image loads
+                        detectEdges();
                     };
                     img.src = e.target.result;
                 };
@@ -106,16 +112,14 @@
             }
         });
 
-        // Edge detection using Sobel filter (gradient calculation)
         function detectEdges() {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
             const width = canvas.width;
             const height = canvas.height;
-            const threshold = 40; // Define the color change threshold
-            regions = []; // Clear previous regions
+            const threshold = 40; 
+            regions = [];
 
-            // Sobel filter kernels for detecting gradients
             const kernelX = [
                 [-1, 0, 1],
                 [-2, 0, 2],
@@ -127,12 +131,9 @@
                 [1, 2, 1]
             ];
 
-            // Loop through the image pixels
             for (let y = 1; y < height - 1; y++) {
                 for (let x = 1; x < width - 1; x++) {
                     let gx = 0, gy = 0;
-
-                    // Apply the Sobel kernels to the current pixel
                     for (let ky = -1; ky <= 1; ky++) {
                         for (let kx = -1; kx <= 1; kx++) {
                             const pixel = getPixel(x + kx, y + ky, data, width);
@@ -140,23 +141,16 @@
                             gy += pixel.r * kernelY[ky + 1][kx + 1];
                         }
                     }
-
-                    // Calculate the gradient magnitude
                     const magnitude = Math.sqrt(gx * gx + gy * gy);
                     if (magnitude > threshold) {
-                        // Highlight the area with significant color change (edge)
                         const region = { x, y, width: 10, height: 10, color: selectedColor };
                         regions.push(region);
-
-                        // Draw a border around the detected area
                         ctx.strokeStyle = 'red';
                         ctx.lineWidth = 2;
                         ctx.strokeRect(x, y, region.width, region.height);
                     }
                 }
             }
-
-            renderBtn.style.display = 'inline'; // Show render button after edge detection
         }
 
         function getPixel(x, y, data, width) {
@@ -169,99 +163,68 @@
             };
         }
 
-        renderBtn.addEventListener('click', () => {
-            regionTable.innerHTML = ''; // Clear the table
-            regionTable.style.display = 'block'; // Show the table
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
 
-            // Create clickable regions based on detected areas
-            canvas.addEventListener('click', (event) => {
-                const rect = canvas.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
+            regions.forEach((region, index) => {
+                if (
+                    x >= region.x && x <= region.x + region.width &&
+                    y >= region.y && y <= region.y + region.height
+                ) {
+                    selectedRegion = region;
+                    selectedRegion.index = index;
 
-                // Check if a region is clicked
-                regions.forEach((region, index) => {
-                    if (
-                        x >= region.x && x <= region.x + region.width &&
-                        y >= region.y && y <= region.y + region.height
-                    ) {
-                        // Set the selected region
-                        selectedRegion = region;
-                        selectedRegion.index = index;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    regions.forEach(r => {
+                        if (r !== selectedRegion) {
+                            ctx.strokeStyle = 'red';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(r.x, r.y, r.width, r.height);
+                        }
+                    });
+                    ctx.strokeStyle = 'blue';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(selectedRegion.x, selectedRegion.y, selectedRegion.width, selectedRegion.height);
 
-                        // Highlight the selected region
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0);
-                        regions.forEach(r => {
-                            if (r !== selectedRegion) {
-                                ctx.strokeStyle = 'red';
-                                ctx.lineWidth = 2;
-                                ctx.strokeRect(r.x, r.y, r.width, r.height);
-                            }
-                        });
-                        ctx.strokeStyle = 'blue';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(selectedRegion.x, selectedRegion.y, selectedRegion.width, selectedRegion.height);
+                    const regionName = prompt('Enter a name for this region:');
 
-                        // Prompt for region name
-                        const regionName = prompt('Enter a name for this region:');
-
-                        // Add the name and color to the table
-                        const row = regionTable.insertRow();
-                        row.insertCell(0).textContent = regionName;
-                        row.insertCell(1).textContent = selectedColor;
-                        row.insertCell(2).textContent = `${selectedRegion.x}, ${selectedRegion.y}`;
-                        row.insertCell(3).textContent = `${selectedRegion.width}, ${selectedRegion.height}`;
-                    }
-                });
+                    const row = regionTable.insertRow();
+                    row.insertCell(0).textContent = regionName;
+                    row.insertCell(1).textContent = selectedColor;
+                    row.insertCell(2).textContent = `${selectedRegion.x}, ${selectedRegion.y}`;
+                    row.insertCell(3).textContent = `${selectedRegion.width}, ${selectedRegion.height}`;
+                }
             });
         });
 
-        // Handle region resizing
-        canvas.addEventListener('mousedown', (event) => {
-            if (selectedRegion && isInResizeArea(event)) {
-                isResizing = true;
-                dragOffsetX = event.clientX - selectedRegion.x - selectedRegion.width;
-                dragOffsetY = event.clientY - selectedRegion.y - selectedRegion.height;
-            } else if (selectedRegion && isInRegionArea(event)) {
-                isDragging = true;
-                dragOffsetX = event.clientX - selectedRegion.x;
-                dragOffsetY = event.clientY - selectedRegion.y;
-            }
-        });
-
         canvas.addEventListener('mousemove', (event) => {
-            if (isResizing) {
-                selectedRegion.width = event.clientX - selectedRegion.x - dragOffsetX;
-                selectedRegion.height = event.clientY - selectedRegion.y - dragOffsetY;
-                redraw();
-            } else if (isDragging) {
-                selectedRegion.x = event.clientX - dragOffsetX;
-                selectedRegion.y = event.clientY - dragOffsetY;
-                redraw();
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            let hoverRegion = null;
+            regions.forEach((region) => {
+                if (
+                    x >= region.x && x <= region.x + region.width &&
+                    y >= region.y && y <= region.y + region.height
+                ) {
+                    hoverRegion = region;
+                }
+            });
+
+            if (hoverRegion) {
+                hoverBox.style.display = 'block';
+                hoverBox.style.left = `${hoverRegion.x}px`;
+                hoverBox.style.top = `${hoverRegion.y}px`;
+                hoverBox.style.width = `${hoverRegion.width}px`;
+                hoverBox.style.height = `${hoverRegion.height}px`;
+            } else {
+                hoverBox.style.display = 'none';
             }
         });
-
-        canvas.addEventListener('mouseup', () => {
-            isDragging = false;
-            isResizing = false;
-        });
-
-        function isInRegionArea(event) {
-            const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            return x >= selectedRegion.x && x <= selectedRegion.x + selectedRegion.width &&
-                   y >= selectedRegion.y && y <= selectedRegion.y + selectedRegion.height;
-        }
-
-        function isInResizeArea(event) {
-            const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            return x >= selectedRegion.x + selectedRegion.width - 10 && x <= selectedRegion.x + selectedRegion.width &&
-                   y >= selectedRegion.y + selectedRegion.height - 10 && y <= selectedRegion.y + selectedRegion.height;
-        }
 
         function redraw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
