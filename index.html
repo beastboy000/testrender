@@ -6,53 +6,48 @@
     <title>Interactive Image Regions</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
             font-family: Arial, sans-serif;
-            background: #f4f4f4;
+            background-color: #f0f0f0;
             text-align: center;
+            margin: 0;
         }
 
         #upload-container {
-            margin: 20px;
+            margin-top: 20px;
+        }
+
+        canvas {
+            border: 2px solid #000;
+            margin-top: 20px;
+            cursor: crosshair;
         }
 
         #region-table {
             margin-top: 20px;
             width: 80%;
-            margin: 20px auto;
+            margin: 0 auto;
             border-collapse: collapse;
-            text-align: left;
-            display: none; /* Initially hidden, will show after rendering */
+            display: none;
         }
 
         #region-table th, #region-table td {
-            padding: 8px;
+            padding: 10px;
             border: 1px solid #ccc;
         }
 
         #region-table th {
-            background-color: #eee;
-        }
-
-        canvas {
-            border: 2px solid #000;
-            margin: 20px 0;
-        }
-
-        #color-input {
-            margin-top: 20px;
-        }
-
-        #render-btn {
-            margin-top: 20px;
+            background-color: #f9f9f9;
         }
 
         #hover-box {
             position: absolute;
-            border: 2px solid #ff0000;
+            border: 2px dashed #ff0000;
             pointer-events: none;
             display: none;
+        }
+
+        #render-btn {
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -61,7 +56,6 @@
     <div id="upload-container">
         <input type="file" id="image-input" accept="image/*">
         <button id="render-btn">Render Image</button>
-        <input type="color" id="color-input" value="#ff0000">
     </div>
 
     <canvas id="canvas"></canvas>
@@ -75,8 +69,7 @@
                 <th>Size (Width, Height)</th>
             </tr>
         </thead>
-        <tbody>
-        </tbody>
+        <tbody></tbody>
     </table>
 
     <div id="hover-box"></div>
@@ -87,18 +80,13 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const regionTable = document.getElementById('region-table').getElementsByTagName('tbody')[0];
-        const colorInput = document.getElementById('color-input');
         const hoverBox = document.getElementById('hover-box');
 
         let img = new Image();
         let regions = [];
         let selectedRegion = null;
-        let selectedColor = colorInput.value;
-        let pixelData = null;
 
-        const colorThreshold = 50;  // Threshold for detecting color changes (higher = more sensitive)
-
-        // Variable to track if the image is uploaded but not yet rendered
+        // Variable to track if the image is uploaded and ready to render
         let imageReady = false;
 
         // Handle image input change (image upload)
@@ -108,7 +96,6 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     img.onload = function() {
-                        // Set imageReady to true after the image is loaded
                         imageReady = true;
                     };
                     img.src = e.target.result;
@@ -123,20 +110,15 @@
                 return;
             }
 
-            // Clear the table and show it
+            // Clear previous content
             regionTable.innerHTML = ''; // Clear the table
-            regionTable.style.display = 'block'; // Show the table
+            regionTable.style.display = 'none'; // Hide table before rendering
 
-            // Clear the canvas before drawing the image
+            // Clear the canvas and draw the new image
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw the uploaded image on the canvas
             canvas.width = img.width;
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
-
-            // Get image pixel data
-            pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
             // Detect color changes and create regions
             detectColorChanges();
@@ -148,143 +130,118 @@
                 ctx.strokeRect(region.x, region.y, region.width, region.height);
             });
 
-            // Make regions clickable
-            canvas.addEventListener('click', (event) => {
-                const rect = canvas.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
+            // Show the table once regions are created
+            regionTable.style.display = 'block';
+        });
 
-                regions.forEach((region, index) => {
-                    if (
-                        x >= region.x && x <= region.x + region.width &&
-                        y >= region.y && y <= region.y + region.height
-                    ) {
-                        // Set the selected region
-                        selectedRegion = region;
-                        selectedRegion.index = index;
+        // Handle canvas click to select regions
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
 
-                        // Highlight the selected region
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0);
-                        regions.forEach(r => {
-                            if (r !== selectedRegion) {
-                                ctx.strokeStyle = r.color;
-                                ctx.lineWidth = 2;
-                                ctx.strokeRect(r.x, r.y, r.width, r.height);
-                            }
-                        });
-                        ctx.strokeStyle = 'blue';
+            // Check if a region is clicked
+            regions.forEach((region, index) => {
+                if (
+                    x >= region.x && x <= region.x + region.width &&
+                    y >= region.y && y <= region.y + region.height
+                ) {
+                    selectedRegion = region;
+
+                    // Highlight selected region
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    regions.forEach(r => {
+                        ctx.strokeStyle = r.color;
                         ctx.lineWidth = 2;
-                        ctx.strokeRect(selectedRegion.x, selectedRegion.y, selectedRegion.width, selectedRegion.height);
+                        ctx.strokeRect(r.x, r.y, r.width, r.height);
+                    });
+                    ctx.strokeStyle = 'blue';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(selectedRegion.x, selectedRegion.y, selectedRegion.width, selectedRegion.height);
 
-                        // Prompt for region name
-                        const regionName = prompt('Enter a name for this region:');
-                        if (regionName) {
-                            // Update the region name
-                            selectedRegion.name = regionName;
+                    // Prompt for region name
+                    const regionName = prompt('Enter a name for this region:');
+                    if (regionName) {
+                        selectedRegion.name = regionName;
 
-                            // Add the name and color to the table
-                            const row = regionTable.insertRow();
-                            row.insertCell(0).textContent = selectedRegion.name;
-                            row.insertCell(1).textContent = selectedColor;
-                            row.insertCell(2).textContent = `${selectedRegion.x}, ${selectedRegion.y}`;
-                            row.insertCell(3).textContent = `${selectedRegion.width}, ${selectedRegion.height}`;
-                        }
-
-                        // Ensure the table is visible after entering the name
-                        regionTable.style.display = 'block';
+                        // Add the name and color to the table
+                        const row = regionTable.insertRow();
+                        row.insertCell(0).textContent = selectedRegion.name;
+                        row.insertCell(1).textContent = selectedRegion.color;
+                        row.insertCell(2).textContent = `${selectedRegion.x}, ${selectedRegion.y}`;
+                        row.insertCell(3).textContent = `${selectedRegion.width}, ${selectedRegion.height}`;
                     }
-                });
-            });
 
-            // Hover effect
-            canvas.addEventListener('mousemove', (event) => {
-                const rect = canvas.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
-
-                let hoverRegion = null;
-                regions.forEach((region) => {
-                    if (
-                        x >= region.x && x <= region.x + region.width &&
-                        y >= region.y && y <= region.y + region.height
-                    ) {
-                        hoverRegion = region;
-                    }
-                });
-
-                if (hoverRegion) {
-                    hoverBox.style.display = 'block';
-                    hoverBox.style.left = `${hoverRegion.x}px`;
-                    hoverBox.style.top = `${hoverRegion.y}px`;
-                    hoverBox.style.width = `${hoverRegion.width}px`;
-                    hoverBox.style.height = `${hoverRegion.height}px`;
-                } else {
-                    hoverBox.style.display = 'none';
+                    // Make sure the table is visible
+                    regionTable.style.display = 'block';
                 }
             });
         });
 
-        // Handle color input change
-        colorInput.addEventListener('input', (event) => {
-            selectedColor = event.target.value;
-            if (selectedRegion) {
-                selectedRegion.color = selectedColor;
-                // Re-draw the image with the updated color for the selected region
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
-                regions.forEach(r => {
-                    ctx.strokeStyle = r.color;
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(r.x, r.y, r.width, r.height);
-                });
+        // Hover box effect to highlight regions
+        canvas.addEventListener('mousemove', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            let hoverRegion = null;
+            regions.forEach((region) => {
+                if (
+                    x >= region.x && x <= region.x + region.width &&
+                    y >= region.y && y <= region.y + region.height
+                ) {
+                    hoverRegion = region;
+                }
+            });
+
+            if (hoverRegion) {
+                hoverBox.style.display = 'block';
+                hoverBox.style.left = `${hoverRegion.x}px`;
+                hoverBox.style.top = `${hoverRegion.y}px`;
+                hoverBox.style.width = `${hoverRegion.width}px`;
+                hoverBox.style.height = `${hoverRegion.height}px`;
+            } else {
+                hoverBox.style.display = 'none';
             }
         });
 
+        // Function to detect color changes and create regions
         function detectColorChanges() {
             const width = canvas.width;
             const height = canvas.height;
-            const threshold = colorThreshold;
-            regions = []; // Reset regions before detecting new ones
+            const threshold = 50; // Threshold for detecting significant color change
+            regions = []; // Clear previous regions
 
-            // Loop through all pixels and compare color differences
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+
+            // Detect color changes and create regions
             for (let y = 0; y < height - 1; y++) {
                 for (let x = 0; x < width - 1; x++) {
-                    const pixelIndex = (y * width + x) * 4;
+                    const i = (y * width + x) * 4;
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
 
-                    const r = pixelData.data[pixelIndex];
-                    const g = pixelData.data[pixelIndex + 1];
-                    const b = pixelData.data[pixelIndex + 2];
+                    // Check for color differences with the adjacent pixel to the right
+                    const iRight = (y * width + (x + 1)) * 4;
+                    const rRight = data[iRight];
+                    const gRight = data[iRight + 1];
+                    const bRight = data[iRight + 2];
 
-                    const rightPixelIndex = (y * width + x + 1) * 4;
-                    const bottomPixelIndex = ((y + 1) * width + x) * 4;
-
-                    const rRight = pixelData.data[rightPixelIndex];
-                    const gRight = pixelData.data[rightPixelIndex + 1];
-                    const bRight = pixelData.data[rightPixelIndex + 2];
-
-                    const rBottom = pixelData.data[bottomPixelIndex];
-                    const gBottom = pixelData.data[bottomPixelIndex + 1];
-                    const bBottom = pixelData.data[bottomPixelIndex + 2];
-
-                    // Calculate color differences
                     const colorDiffRight = Math.abs(r - rRight) + Math.abs(g - gRight) + Math.abs(b - bRight);
-                    const colorDiffBottom = Math.abs(r - rBottom) + Math.abs(g - gBottom) + Math.abs(b - bBottom);
-
-                    if (colorDiffRight > threshold || colorDiffBottom > threshold) {
+                    if (colorDiffRight > threshold) {
                         regions.push({
                             x: x,
                             y: y,
-                            width: 10, // Arbitrary region size for illustration
-                            height: 10, // Arbitrary region size for illustration
+                            width: 10,
+                            height: 10,
                             color: `rgb(${r},${g},${b})`
                         });
                     }
                 }
             }
-
-            // Save the detected regions
-            regions.push(...regions);
         }
     </script>
 
