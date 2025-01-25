@@ -220,9 +220,9 @@
             if (regionName) {
                 region.name = regionName;
 
-                // Draw the region name inside the region
-                ctx.fillStyle = region.color;
-                ctx.fillText(regionName, region.x * scaleFactor + 5, region.y * scaleFactor + 15);
+                // Immediately trigger color selection after entering the name
+                selectedRegion = region;
+                openColorModal(region.color);  // Open color picker modal after name is entered
 
                 regions.push(region);
 
@@ -237,8 +237,7 @@
                 const colorButton = document.createElement('button');
                 colorButton.textContent = 'Change Color';
                 colorButton.addEventListener('click', () => {
-                    selectedRegion = region;
-                    openColorModal(selectedRegion.color); // Open modal with current color
+                    openColorModal(region.color); // Open modal with current color
                 });
                 actionCell.appendChild(colorButton);
             }
