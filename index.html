@@ -132,6 +132,7 @@
         let isDrawing = false;
         let startX, startY;
         let selectedRegion = null; // Track the selected region
+        let scaleFactor = 1;  // Initialize scale factor
 
         // Adjust canvas size to match image and window size
         function resizeCanvas() {
@@ -139,6 +140,7 @@
             const windowWidth = window.innerWidth * 0.9;  // 90% of window width
             const windowHeight = window.innerHeight * 0.7; // 70% of window height
 
+            // Calculate scale factor based on new canvas size
             if (windowWidth / aspectRatio <= windowHeight) {
                 canvas.width = windowWidth;
                 canvas.height = windowWidth / aspectRatio;
@@ -146,6 +148,10 @@
                 canvas.height = windowHeight;
                 canvas.width = windowHeight * aspectRatio;
             }
+
+            scaleFactor = canvas.width / img.width;  // Set scale factor based on canvas width to image width ratio
+
+            redrawCanvas();  // Redraw everything with updated scale factor
         }
 
         fileInput.addEventListener('change', (event) => {
@@ -167,9 +173,6 @@
         window.addEventListener('resize', () => {
             if (img.src) {
                 resizeCanvas();
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                redrawCanvas();
             }
         });
 
@@ -204,10 +207,10 @@
             const endY = event.clientY - rect.top;
 
             const region = {
-                x: Math.min(startX, endX),
-                y: Math.min(startY, endY),
-                width: Math.abs(endX - startX),
-                height: Math.abs(endY - startY),
+                x: Math.min(startX, endX) / scaleFactor,  // Convert to original image scale
+                y: Math.min(startY, endY) / scaleFactor,  // Convert to original image scale
+                width: Math.abs(endX - startX) / scaleFactor,  // Convert to original image scale
+                height: Math.abs(endY - startY) / scaleFactor,  // Convert to original image scale
                 name: '',
                 color: '#ff0000'  // default red color
             };
@@ -219,15 +222,15 @@
 
                 // Draw the region name inside the region
                 ctx.fillStyle = region.color;
-                ctx.fillText(regionName, region.x + 5, region.y + 15);
+                ctx.fillText(regionName, region.x * scaleFactor + 5, region.y * scaleFactor + 15);
 
                 regions.push(region);
 
                 // Add the region to the table
                 const row = regionTable.insertRow();
                 row.insertCell(0).textContent = region.name;
-                row.insertCell(1).textContent = `${region.x}, ${region.y}`;
-                row.insertCell(2).textContent = `${region.width}, ${region.height}`;
+                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
+                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
 
                 // Add action button for changing the color of the region
                 const actionCell = row.insertCell(3);
@@ -263,17 +266,22 @@
             colorModal.style.display = "none"; // Close the modal
         });
 
-        // Redraw the canvas with updated colors
+        // Redraw the canvas with updated scaling
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // Redraw the original image
 
             // Redraw all regions with their assigned colors
             regions.forEach(region => {
+                const scaledX = region.x * scaleFactor;
+                const scaledY = region.y * scaleFactor;
+                const scaledWidth = region.width * scaleFactor;
+                const scaledHeight = region.height * scaleFactor;
+
                 ctx.fillStyle = region.color;  // Use the region's current color
-                ctx.fillRect(region.x, region.y, region.width, region.height);
+                ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
                 ctx.fillStyle = 'black'; // Reset fill for text
-                ctx.fillText(region.name, region.x + 5, region.y + 15);  // Draw the name inside the region
+                ctx.fillText(region.name, scaledX + 5, scaledY + 15);  // Draw the name inside the region
             });
         }
     </script>
