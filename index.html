@@ -278,8 +278,14 @@
                 const scaledWidth = region.width * scaleFactor;
                 const scaledHeight = region.height * scaleFactor;
 
-                ctx.fillStyle = region.color;  // Use the region's current color
+                ctx.fillStyle = `${region.color}80`;  // Use semi-transparent color (80 hex = 50% transparency)
                 ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+                // Optional: add a border for better visibility
+                ctx.strokeStyle = 'black'; // Border color
+                ctx.lineWidth = 2;
+                ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
                 ctx.fillStyle = 'black'; // Reset fill for text
                 ctx.fillText(region.name, scaledX + 5, scaledY + 15);  // Draw the name inside the region
             });
