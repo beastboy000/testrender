@@ -209,7 +209,7 @@
                 width: Math.abs(endX - startX),
                 height: Math.abs(endY - startY),
                 name: '',
-                color: '#ff0000'
+                color: '#ff0000'  // default red color
             };
 
             // Prompt user to enter a name for the region
@@ -228,7 +228,7 @@
                 row.insertCell(0).textContent = region.name;
                 row.insertCell(1).textContent = `${region.x}, ${region.y}`;
                 row.insertCell(2).textContent = `${region.width}, ${region.height}`;
-                
+
                 // Add action button for changing the color of the region
                 const actionCell = row.insertCell(3);
                 const colorButton = document.createElement('button');
@@ -239,6 +239,8 @@
                 });
                 actionCell.appendChild(colorButton);
             }
+
+            redrawCanvas();  // Redraw canvas after releasing the mouse
         });
 
         // Function to open the color picker modal
@@ -264,12 +266,14 @@
         // Redraw the canvas with updated colors
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // Redraw the original image
+
+            // Redraw all regions with their assigned colors
             regions.forEach(region => {
-                ctx.fillStyle = region.color;
+                ctx.fillStyle = region.color;  // Use the region's current color
                 ctx.fillRect(region.x, region.y, region.width, region.height);
                 ctx.fillStyle = 'black'; // Reset fill for text
-                ctx.fillText(region.name, region.x + 5, region.y + 15);
+                ctx.fillText(region.name, region.x + 5, region.y + 15);  // Draw the name inside the region
             });
         }
     </script>
