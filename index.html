@@ -183,7 +183,7 @@
         // Update scaling factor based on slider
         resizeSlider.addEventListener('input', (e) => {
             scaleFactor = e.target.value / 100;
-            resizeValue.textContent = `${e.target.value}%`;
+            resizeValue.textContent = ${e.target.value}%;
             resizeCanvas();
         });
 
@@ -223,7 +223,7 @@
                 const scaledWidth = region.width * scaleFactor;
                 const scaledHeight = region.height * scaleFactor;
 
-                ctx.strokeStyle = `${region.color}80`; // Semi-transparent outline
+                ctx.strokeStyle = ${region.color}80; // Semi-transparent outline
                 ctx.lineWidth = 2;
                 ctx.setLineDash([6, 3]); // Dashed line for previously drawn regions
                 ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
@@ -260,8 +260,8 @@
 
                 const row = regionTable.insertRow();
                 row.insertCell(0).textContent = region.name;
-                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
-                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
+                row.insertCell(1).textContent = ${region.x * scaleFactor}, ${region.y * scaleFactor};
+                row.insertCell(2).textContent = ${region.width * scaleFactor}, ${region.height * scaleFactor};
 
                 const actionCell = row.insertCell(3);
                 const colorButton = document.createElement('button');
@@ -304,7 +304,7 @@
                 const scaledWidth = region.width * scaleFactor;
                 const scaledHeight = region.height * scaleFactor;
 
-                ctx.fillStyle = `${region.color}80`; 
+                ctx.fillStyle = ${region.color}80; 
                 ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
                 ctx.strokeStyle = 'black';
