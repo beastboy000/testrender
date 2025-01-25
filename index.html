@@ -47,6 +47,44 @@
             padding: 5px;
             margin-top: 10px;
         }
+
+        /* Modal (Popup) Style */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -56,12 +94,6 @@
     </div>
 
     <canvas id="image-canvas"></canvas>
-
-    <!-- Color Picker for Changing Region Fill -->
-    <div class="color-picker">
-        <label for="color-input">Select Fill Color for Region:</label>
-        <input type="color" id="color-input" value="#ff0000" />
-    </div>
 
     <table id="region-table">
         <thead>
@@ -76,17 +108,29 @@
         </tbody>
     </table>
 
+    <!-- Modal for Color Picker -->
+    <div id="colorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <h3>Select a Color</h3>
+            <input type="color" id="popupColorInput" value="#ff0000" />
+            <button id="applyColor">Apply Color</button>
+        </div>
+    </div>
+
     <script>
         const canvas = document.getElementById('image-canvas');
         const ctx = canvas.getContext('2d');
         const fileInput = document.getElementById('file-input');
         const regionTable = document.getElementById('region-table').getElementsByTagName('tbody')[0];
-        const colorInput = document.getElementById('color-input');
+        const colorModal = document.getElementById('colorModal');
+        const popupColorInput = document.getElementById('popupColorInput');
+        const applyColorButton = document.getElementById('applyColor');
+        const closeModalButton = document.getElementById('closeModal');
         let img = new Image();
         let regions = [];
         let isDrawing = false;
         let startX, startY;
-        let selectedColor = '#ff0000'; // Default region color
         let selectedRegion = null; // Track the selected region
 
         // Adjust canvas size to match image and window size
@@ -146,7 +190,7 @@
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
             // Draw the rectangle as the user drags
-            ctx.strokeStyle = selectedColor;
+            ctx.strokeStyle = selectedRegion ? selectedRegion.color : '#ff0000';
             ctx.lineWidth = 2;
             ctx.setLineDash([6, 3]); // Dashed line
             ctx.strokeRect(startX, startY, x - startX, y - startY);
@@ -165,7 +209,7 @@
                 width: Math.abs(endX - startX),
                 height: Math.abs(endY - startY),
                 name: '',
-                color: selectedColor
+                color: '#ff0000'
             };
 
             // Prompt user to enter a name for the region
@@ -174,7 +218,7 @@
                 region.name = regionName;
 
                 // Draw the region name inside the region
-                ctx.fillStyle = selectedColor;
+                ctx.fillStyle = region.color;
                 ctx.fillText(regionName, region.x + 5, region.y + 15);
 
                 regions.push(region);
@@ -191,32 +235,30 @@
                 colorButton.textContent = 'Change Color';
                 colorButton.addEventListener('click', () => {
                     selectedRegion = region;
-                    colorInput.value = selectedRegion.color; // Set the color input to the current region color
-                    colorInput.dispatchEvent(new Event('input')); // Trigger the input event to immediately update the color
+                    openColorModal(selectedRegion.color); // Open modal with current color
                 });
                 actionCell.appendChild(colorButton);
             }
         });
 
-        // Handle changing the fill color of the selected region
-        colorInput.addEventListener('input', (event) => {
-            if (selectedRegion) {
-                selectedRegion.color = event.target.value;
+        // Function to open the color picker modal
+        function openColorModal(currentColor) {
+            popupColorInput.value = currentColor; // Set the color input to the current region color
+            colorModal.style.display = "block"; // Show the modal
+        }
 
-                // Redraw all regions with updated colors
-                redrawCanvas();
-                
-                // Update the region's color in the table
-                const rows = regionTable.rows;
-                for (let i = 0; i < rows.length; i++) {
-                    if (rows[i].cells[0].textContent === selectedRegion.name) {
-                        rows[i].cells[1].textContent = `${selectedRegion.x}, ${selectedRegion.y}`;
-                        rows[i].cells[2].textContent = `${selectedRegion.width}, ${selectedRegion.height}`;
-                        // Add color information to the table (Optional, if you want to show color directly)
-                        rows[i].cells[3].textContent = `Color: ${selectedRegion.color}`;
-                    }
-                }
+        // Close the modal
+        closeModalButton.addEventListener('click', () => {
+            colorModal.style.display = "none";
+        });
+
+        // Apply the selected color and close modal
+        applyColorButton.addEventListener('click', () => {
+            if (selectedRegion) {
+                selectedRegion.color = popupColorInput.value; // Update the region's color
+                redrawCanvas(); // Redraw with the updated color
             }
+            colorModal.style.display = "none"; // Close the modal
         });
 
         // Redraw the canvas with updated colors
