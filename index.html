@@ -189,10 +189,24 @@
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
 
+            // Clear the canvas and redraw the image
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-            // Draw the rectangle as the user drags
+            // Draw previously drawn regions with semi-transparent outlines
+            regions.forEach(region => {
+                const scaledX = region.x * scaleFactor;
+                const scaledY = region.y * scaleFactor;
+                const scaledWidth = region.width * scaleFactor;
+                const scaledHeight = region.height * scaleFactor;
+
+                ctx.strokeStyle = `${region.color}80`; // Semi-transparent outline
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 3]); // Dashed line for previously drawn regions
+                ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+            });
+
+            // Draw the rectangle as the user drags for the new region
             ctx.strokeStyle = selectedRegion ? selectedRegion.color : '#ff0000';
             ctx.lineWidth = 2;
             ctx.setLineDash([6, 3]); // Dashed line
