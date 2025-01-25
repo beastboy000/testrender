@@ -237,6 +237,7 @@
                 const colorButton = document.createElement('button');
                 colorButton.textContent = 'Change Color';
                 colorButton.addEventListener('click', () => {
+                    selectedRegion = region;  // Set selectedRegion to the correct region
                     openColorModal(region.color); // Open modal with current color
                 });
                 actionCell.appendChild(colorButton);
