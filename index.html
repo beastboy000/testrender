@@ -14,11 +14,16 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            overflow: auto;
         }
         #upload-container {
             margin-bottom: 20px;
         }
         canvas {
+            max-width: 100%;
+            max-height: 80vh;
             border: 2px solid #ddd;
             margin-bottom: 20px;
             cursor: crosshair;
@@ -84,19 +89,43 @@
         let selectedColor = '#ff0000'; // Default region color
         let selectedRegion = null; // Track the selected region
 
+        // Adjust canvas size to match image and window size
+        function resizeCanvas() {
+            const aspectRatio = img.width / img.height;
+            const windowWidth = window.innerWidth * 0.9;  // 90% of window width
+            const windowHeight = window.innerHeight * 0.7; // 70% of window height
+
+            if (windowWidth / aspectRatio <= windowHeight) {
+                canvas.width = windowWidth;
+                canvas.height = windowWidth / aspectRatio;
+            } else {
+                canvas.height = windowHeight;
+                canvas.width = windowHeight * aspectRatio;
+            }
+        }
+
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     img.onload = () => {
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0);
+                        resizeCanvas(); // Adjust canvas size based on image
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     };
                     img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle resizing of window
+        window.addEventListener('resize', () => {
+            if (img.src) {
+                resizeCanvas();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                redrawCanvas();
             }
         });
 
@@ -114,7 +143,7 @@
             const y = event.clientY - rect.top;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
             // Draw the rectangle as the user drags
             ctx.strokeStyle = selectedColor;
@@ -193,7 +222,7 @@
         // Redraw the canvas with updated colors
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             regions.forEach(region => {
                 ctx.fillStyle = region.color;
                 ctx.fillRect(region.x, region.y, region.width, region.height);
