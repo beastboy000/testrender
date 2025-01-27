@@ -177,107 +177,65 @@
             const rect = canvas.getBoundingClientRect();
             startX = event.clientX - rect.left;
             startY = event.clientY - rect.top;
-
-            // Show the modal to input the region name and color before drawing
-            regionModal.style.display = "block";
         });
 
-        // Handle drawing region after user inputs name and color
-        applyRegionButton.addEventListener('click', () => {
-            const regionName = regionNameInput.value;
-            const regionColor = regionColorInput.value;
+        // Handle drawing region after user finishes selecting area
+        canvas.addEventListener('mouseup', (event) => {
+            if (!isDrawing) return;
+            isDrawing = false;
 
-            if (regionName && regionColor) {
-                // Proceed to draw the region on the canvas
-                const region = {
-                    x: startX / scaleFactor,
-                    y: startY / scaleFactor,
-                    width: 0,  // Width will be determined as user drags
-                    height: 0, // Height will be determined as user drags
-                    name: regionName,
-                    color: regionColor
-                };
+            // Calculate the region dimensions
+            const rect = canvas.getBoundingClientRect();
+            const endX = event.clientX - rect.left;
+            const endY = event.clientY - rect.top;
 
-                regions.push(region);
+            // Open the modal to input name and color for the new region
+            regionModal.style.display = "block";
 
-                // Add the region to the table
-                const row = regionTable.insertRow();
-                row.insertCell(0).textContent = region.name;
-                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
-                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
+            // Store the region data temporarily
+            const regionData = {
+                x: Math.min(startX, endX) / scaleFactor,
+                y: Math.min(startY, endY) / scaleFactor,
+                width: Math.abs(endX - startX) / scaleFactor,
+                height: Math.abs(endY - startY) / scaleFactor
+            };
 
-                const actionCell = row.insertCell(3);
-                const colorButton = document.createElement('button');
-                colorButton.textContent = 'Change Color';
-                colorButton.addEventListener('click', () => {
-                    regionNameInput.value = region.name;
-                    regionColorInput.value = region.color;
-                    regionModal.style.display = "block";
-                });
-                actionCell.appendChild(colorButton);
+            // Apply region data when the user confirms
+            applyRegionButton.onclick = () => {
+                const regionName = regionNameInput.value;
+                const regionColor = regionColorInput.value;
 
-                regionModal.style.display = "none";  // Hide the modal
-            }
+                if (regionName && regionColor) {
+                    regionData.name = regionName;
+                    regionData.color = regionColor;
+
+                    regions.push(regionData);
+
+                    // Add the region to the table
+                    const row = regionTable.insertRow();
+                    row.insertCell(0).textContent = regionData.name;
+                    row.insertCell(1).textContent = `${regionData.x * scaleFactor}, ${regionData.y * scaleFactor}`;
+                    row.insertCell(2).textContent = `${regionData.width * scaleFactor}, ${regionData.height * scaleFactor}`;
+
+                    const actionCell = row.insertCell(3);
+                    const colorButton = document.createElement('button');
+                    colorButton.textContent = 'Change Color';
+                    colorButton.addEventListener('click', () => {
+                        regionNameInput.value = regionData.name;
+                        regionColorInput.value = regionData.color;
+                        regionModal.style.display = "block";
+                    });
+                    actionCell.appendChild(colorButton);
+
+                    regionModal.style.display = "none";  // Hide the modal
+                    redrawCanvas();  // Redraw canvas with new region
+                }
+            };
         });
 
         // Close the region modal
         closeRegionModalButton.addEventListener('click', () => {
             regionModal.style.display = "none";
-        });
-
-        canvas.addEventListener('mousemove', (event) => {
-            if (!isDrawing) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-
-            // Clear the canvas and redraw the image
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-            // Draw previously drawn regions
-            regions.forEach(region => {
-                const scaledX = region.x * scaleFactor;
-                const scaledY = region.y * scaleFactor;
-                const scaledWidth = region.width * scaleFactor;
-                const scaledHeight = region.height * scaleFactor;
-
-                ctx.fillStyle = `${region.color}80`;  // Use semi-transparent color (80 hex = 50% transparency)
-                ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
-
-                // Optional: add a border for better visibility
-                ctx.strokeStyle = 'black'; // Border color
-                ctx.lineWidth = 2;
-                ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
-
-                ctx.fillStyle = 'black'; // Reset fill for text
-                ctx.fillText(region.name, scaledX + 5, scaledY + 15);  // Draw the name inside the region
-            });
-
-            // Draw the current region as user drags
-            const width = x - startX;
-            const height = y - startY;
-            ctx.strokeStyle = '#ff0000';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([6, 3]);
-            ctx.strokeRect(startX, startY, width, height);
-        });
-
-        canvas.addEventListener('mouseup', (event) => {
-            if (!isDrawing) return;
-            isDrawing = false;
-
-            // Finalize the region size
-            const rect = canvas.getBoundingClientRect();
-            const endX = event.clientX - rect.left;
-            const endY = event.clientY - rect.top;
-
-            // Update the region dimensions
-            const region = regions[regions.length - 1];
-            region.width = Math.abs(endX - startX) / scaleFactor;
-            region.height = Math.abs(endY - startY) / scaleFactor;
-
-            redrawCanvas();  // Redraw the canvas with updated region
         });
 
         // Redraw the canvas with updated scaling
