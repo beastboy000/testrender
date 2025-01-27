@@ -5,7 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2D Image with Interactive Regions</title>
     <style>
-        /* Your existing styles... */
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            overflow: auto;
+        }
+        #upload-container {
+            margin-bottom: 20px;
+        }
+        canvas {
+            max-width: 100%;
+            max-height: 80vh;
+            border: 2px solid #ddd;
+            margin-bottom: 20px;
+            cursor: crosshair;
+        }
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+
+        /* Modal (Popup) Style */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -56,7 +130,6 @@
         let regions = [];
         let isDrawing = false;
         let startX, startY;
-        let selectedRegion = null; // Track the selected region
         let scaleFactor = 1;  // Initialize scale factor
 
         // Adjust canvas size to match image and window size
@@ -137,7 +210,6 @@
                 const colorButton = document.createElement('button');
                 colorButton.textContent = 'Change Color';
                 colorButton.addEventListener('click', () => {
-                    selectedRegion = region;
                     regionNameInput.value = region.name;
                     regionColorInput.value = region.color;
                     regionModal.style.display = "block";
