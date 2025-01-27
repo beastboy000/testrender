@@ -101,6 +101,7 @@
                 <th>Region Name</th>
                 <th>Position (X, Y)</th>
                 <th>Size (Width, Height)</th>
+                <th>Color</th> <!-- New column for color -->
                 <th>Action</th>
             </tr>
         </thead>
@@ -246,8 +247,12 @@
                 row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
                 row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
 
+                // Add new column to show color
+                const colorCell = row.insertCell(3);
+                colorCell.textContent = region.color;  // Display color in the table
+
                 // Add action button for changing the color of the region
-                const actionCell = row.insertCell(3);
+                const actionCell = row.insertCell(4);
                 const colorButton = document.createElement('button');
                 colorButton.textContent = 'Change Color';
                 colorButton.addEventListener('click', () => {
@@ -275,6 +280,17 @@
         applyColorButton.addEventListener('click', () => {
             if (selectedRegion) {
                 selectedRegion.color = popupColorInput.value; // Update the region's color
+
+                // Find the corresponding row in the table and update the color cell
+                const regionRows = regionTable.getElementsByTagName('tr');
+                for (let i = 0; i < regionRows.length; i++) {
+                    const row = regionRows[i];
+                    if (row.cells[0].textContent === selectedRegion.name) {
+                        row.cells[3].textContent = selectedRegion.color;  // Update the color display in the table
+                        break;
+                    }
+                }
+
                 redrawCanvas(); // Redraw with the updated color
             }
             colorModal.style.display = "none"; // Close the modal
