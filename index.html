@@ -43,9 +43,12 @@
         th {
             background-color: #f2f2f2;
         }
-        .color-picker {
-            padding: 5px;
-            margin-top: 10px;
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            display: inline-block;
+            margin: 0 auto;
         }
 
         /* Modal (Popup) Style */
@@ -249,7 +252,10 @@
 
                 // Add new column to show color
                 const colorCell = row.insertCell(3);
-                colorCell.textContent = region.color;  // Display color in the table
+                const colorBox = document.createElement('div');
+                colorBox.classList.add('color-box');
+                colorBox.style.backgroundColor = region.color; // Set the background color of the box
+                colorCell.appendChild(colorBox);  // Add the colored box to the table
 
                 // Add action button for changing the color of the region
                 const actionCell = row.insertCell(4);
@@ -286,7 +292,7 @@
                 for (let i = 0; i < regionRows.length; i++) {
                     const row = regionRows[i];
                     if (row.cells[0].textContent === selectedRegion.name) {
-                        row.cells[3].textContent = selectedRegion.color;  // Update the color display in the table
+                        row.cells[3].querySelector('.color-box').style.backgroundColor = selectedRegion.color;  // Update the color box in the table
                         break;
                     }
                 }
