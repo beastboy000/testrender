@@ -200,7 +200,7 @@
                 const scaledWidth = region.width * scaleFactor;
                 const scaledHeight = region.height * scaleFactor;
 
-                ctx.strokeStyle = ${region.color}80; // Semi-transparent outline
+                ctx.strokeStyle = `${region.color}80`; // Semi-transparent outline
                 ctx.lineWidth = 2;
                 ctx.setLineDash([6, 3]); // Dashed line for previously drawn regions
                 ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
@@ -243,8 +243,8 @@
                 // Add the region to the table
                 const row = regionTable.insertRow();
                 row.insertCell(0).textContent = region.name;
-                row.insertCell(1).textContent = ${region.x * scaleFactor}, ${region.y * scaleFactor};
-                row.insertCell(2).textContent = ${region.width * scaleFactor}, ${region.height * scaleFactor};
+                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
+                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
 
                 // Add action button for changing the color of the region
                 const actionCell = row.insertCell(3);
@@ -292,7 +292,7 @@
                 const scaledWidth = region.width * scaleFactor;
                 const scaledHeight = region.height * scaleFactor;
 
-                ctx.fillStyle = ${region.color}80;  // Use semi-transparent color (80 hex = 50% transparency)
+                ctx.fillStyle = `${region.color}80`;  // Use semi-transparent color (80 hex = 50% transparency)
                 ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
                 // Optional: add a border for better visibility
