@@ -5,86 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2D Image with Interactive Regions</title>
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background: #f0f0f0;
-            font-family: Arial, sans-serif;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            height: 100vh;
-            overflow: auto;
-        }
-        #upload-container {
-            margin-bottom: 20px;
-        }
-        canvas {
-            max-width: 100%;
-            max-height: 80vh;
-            border: 2px solid #ddd;
-            margin-bottom: 20px;
-            cursor: crosshair;
-        }
-        table {
-            width: 80%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .color-picker {
-            padding: 5px;
-            margin-top: 10px;
-        }
-
-        /* Modal (Popup) Style */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgb(0,0,0);
-            background-color: rgba(0,0,0,0.4);
-            padding-top: 60px;
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 400px;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
+        /* Your existing styles... */
     </style>
 </head>
 <body>
@@ -108,13 +29,16 @@
         </tbody>
     </table>
 
-    <!-- Modal for Color Picker -->
-    <div id="colorModal" class="modal">
+    <!-- Modal for Region Name and Color Picker -->
+    <div id="regionModal" class="modal">
         <div class="modal-content">
-            <span class="close" id="closeModal">&times;</span>
-            <h3>Select a Color</h3>
-            <input type="color" id="popupColorInput" value="#ff0000" />
-            <button id="applyColor">Apply Color</button>
+            <span class="close" id="closeRegionModal">&times;</span>
+            <h3>Enter Region Name and Color</h3>
+            <label for="regionNameInput">Region Name:</label>
+            <input type="text" id="regionNameInput" placeholder="Enter region name" />
+            <label for="regionColorInput">Region Color:</label>
+            <input type="color" id="regionColorInput" value="#ff0000" />
+            <button id="applyRegion">Apply Region</button>
         </div>
     </div>
 
@@ -123,10 +47,11 @@
         const ctx = canvas.getContext('2d');
         const fileInput = document.getElementById('file-input');
         const regionTable = document.getElementById('region-table').getElementsByTagName('tbody')[0];
-        const colorModal = document.getElementById('colorModal');
-        const popupColorInput = document.getElementById('popupColorInput');
-        const applyColorButton = document.getElementById('applyColor');
-        const closeModalButton = document.getElementById('closeModal');
+        const regionModal = document.getElementById('regionModal');
+        const regionNameInput = document.getElementById('regionNameInput');
+        const regionColorInput = document.getElementById('regionColorInput');
+        const applyRegionButton = document.getElementById('applyRegion');
+        const closeRegionModalButton = document.getElementById('closeRegionModal');
         let img = new Image();
         let regions = [];
         let isDrawing = false;
@@ -140,7 +65,6 @@
             const windowWidth = window.innerWidth * 0.9;  // 90% of window width
             const windowHeight = window.innerHeight * 0.7; // 70% of window height
 
-            // Calculate scale factor based on new canvas size
             if (windowWidth / aspectRatio <= windowHeight) {
                 canvas.width = windowWidth;
                 canvas.height = windowWidth / aspectRatio;
@@ -169,7 +93,6 @@
             }
         });
 
-        // Handle resizing of window
         window.addEventListener('resize', () => {
             if (img.src) {
                 resizeCanvas();
@@ -181,6 +104,53 @@
             const rect = canvas.getBoundingClientRect();
             startX = event.clientX - rect.left;
             startY = event.clientY - rect.top;
+
+            // Show the modal to input the region name and color before drawing
+            regionModal.style.display = "block";
+        });
+
+        // Handle drawing region after user inputs name and color
+        applyRegionButton.addEventListener('click', () => {
+            const regionName = regionNameInput.value;
+            const regionColor = regionColorInput.value;
+
+            if (regionName && regionColor) {
+                // Proceed to draw the region on the canvas
+                const region = {
+                    x: startX / scaleFactor,
+                    y: startY / scaleFactor,
+                    width: 0,  // Width will be determined as user drags
+                    height: 0, // Height will be determined as user drags
+                    name: regionName,
+                    color: regionColor
+                };
+
+                regions.push(region);
+
+                // Add the region to the table
+                const row = regionTable.insertRow();
+                row.insertCell(0).textContent = region.name;
+                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
+                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
+
+                const actionCell = row.insertCell(3);
+                const colorButton = document.createElement('button');
+                colorButton.textContent = 'Change Color';
+                colorButton.addEventListener('click', () => {
+                    selectedRegion = region;
+                    regionNameInput.value = region.name;
+                    regionColorInput.value = region.color;
+                    regionModal.style.display = "block";
+                });
+                actionCell.appendChild(colorButton);
+
+                regionModal.style.display = "none";  // Hide the modal
+            }
+        });
+
+        // Close the region modal
+        closeRegionModalButton.addEventListener('click', () => {
+            regionModal.style.display = "none";
         });
 
         canvas.addEventListener('mousemove', (event) => {
@@ -193,99 +163,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-            // Draw previously drawn regions with semi-transparent outlines
-            regions.forEach(region => {
-                const scaledX = region.x * scaleFactor;
-                const scaledY = region.y * scaleFactor;
-                const scaledWidth = region.width * scaleFactor;
-                const scaledHeight = region.height * scaleFactor;
-
-                ctx.strokeStyle = `${region.color}80`; // Semi-transparent outline
-                ctx.lineWidth = 2;
-                ctx.setLineDash([6, 3]); // Dashed line for previously drawn regions
-                ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
-            });
-
-            // Draw the rectangle as the user drags for the new region
-            ctx.strokeStyle = selectedRegion ? selectedRegion.color : '#ff0000';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([6, 3]); // Dashed line
-            ctx.strokeRect(startX, startY, x - startX, y - startY);
-        });
-
-        canvas.addEventListener('mouseup', (event) => {
-            if (!isDrawing) return;
-            isDrawing = false;
-            const rect = canvas.getBoundingClientRect();
-            const endX = event.clientX - rect.left;
-            const endY = event.clientY - rect.top;
-
-            const region = {
-                x: Math.min(startX, endX) / scaleFactor,  // Convert to original image scale
-                y: Math.min(startY, endY) / scaleFactor,  // Convert to original image scale
-                width: Math.abs(endX - startX) / scaleFactor,  // Convert to original image scale
-                height: Math.abs(endY - startY) / scaleFactor,  // Convert to original image scale
-                name: '',
-                color: '#ff0000'  // default red color
-            };
-
-            // Prompt user to enter a name for the region
-            const regionName = prompt('Enter a name for this region:');
-            if (regionName) {
-                region.name = regionName;
-
-                // Immediately trigger color selection after entering the name
-                selectedRegion = region;
-                openColorModal(region.color);  // Open color picker modal after name is entered
-
-                regions.push(region);
-
-                // Add the region to the table
-                const row = regionTable.insertRow();
-                row.insertCell(0).textContent = region.name;
-                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
-                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
-
-                // Add action button for changing the color of the region
-                const actionCell = row.insertCell(3);
-                const colorButton = document.createElement('button');
-                colorButton.textContent = 'Change Color';
-                colorButton.addEventListener('click', () => {
-                    selectedRegion = region;  // Set selectedRegion to the correct region
-                    openColorModal(region.color); // Open modal with current color
-                });
-                actionCell.appendChild(colorButton);
-            }
-
-            redrawCanvas();  // Redraw canvas after releasing the mouse
-        });
-
-        // Function to open the color picker modal
-        function openColorModal(currentColor) {
-            popupColorInput.value = currentColor; // Set the color input to the current region color
-            colorModal.style.display = "block"; // Show the modal
-        }
-
-        // Close the modal
-        closeModalButton.addEventListener('click', () => {
-            colorModal.style.display = "none";
-        });
-
-        // Apply the selected color and close modal
-        applyColorButton.addEventListener('click', () => {
-            if (selectedRegion) {
-                selectedRegion.color = popupColorInput.value; // Update the region's color
-                redrawCanvas(); // Redraw with the updated color
-            }
-            colorModal.style.display = "none"; // Close the modal
-        });
-
-        // Redraw the canvas with updated scaling
-        function redrawCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // Redraw the original image
-
-            // Redraw all regions with their assigned colors
+            // Draw previously drawn regions
             regions.forEach(region => {
                 const scaledX = region.x * scaleFactor;
                 const scaledY = region.y * scaleFactor;
@@ -302,6 +180,54 @@
 
                 ctx.fillStyle = 'black'; // Reset fill for text
                 ctx.fillText(region.name, scaledX + 5, scaledY + 15);  // Draw the name inside the region
+            });
+
+            // Draw the current region as user drags
+            const width = x - startX;
+            const height = y - startY;
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 3]);
+            ctx.strokeRect(startX, startY, width, height);
+        });
+
+        canvas.addEventListener('mouseup', (event) => {
+            if (!isDrawing) return;
+            isDrawing = false;
+
+            // Finalize the region size
+            const rect = canvas.getBoundingClientRect();
+            const endX = event.clientX - rect.left;
+            const endY = event.clientY - rect.top;
+
+            // Update the region dimensions
+            const region = regions[regions.length - 1];
+            region.width = Math.abs(endX - startX) / scaleFactor;
+            region.height = Math.abs(endY - startY) / scaleFactor;
+
+            redrawCanvas();  // Redraw the canvas with updated region
+        });
+
+        // Redraw the canvas with updated scaling
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            regions.forEach(region => {
+                const scaledX = region.x * scaleFactor;
+                const scaledY = region.y * scaleFactor;
+                const scaledWidth = region.width * scaleFactor;
+                const scaledHeight = region.height * scaleFactor;
+
+                ctx.fillStyle = `${region.color}80`;  // Semi-transparent color
+                ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+                ctx.fillStyle = 'black'; // Reset fill for text
+                ctx.fillText(region.name, scaledX + 5, scaledY + 15);  // Name inside region
             });
         }
     </script>
