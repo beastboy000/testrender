@@ -135,16 +135,15 @@
         let regions = [];
         let isDrawing = false;
         let startX, startY;
-        let selectedRegion = null; // Track the selected region
-        let scaleFactor = 1;  // Initialize scale factor
+        let selectedRegion = null; 
+        let scaleFactor = 1;  
 
         // Adjust canvas size to match image and window size
         function resizeCanvas() {
             const aspectRatio = img.width / img.height;
-            const windowWidth = window.innerWidth * 0.9;  // 90% of window width
-            const windowHeight = window.innerHeight * 0.7; // 70% of window height
+            const windowWidth = window.innerWidth * 0.9;
+            const windowHeight = window.innerHeight * 0.7;
 
-            // Calculate scale factor based on new canvas size
             if (windowWidth / aspectRatio <= windowHeight) {
                 canvas.width = windowWidth;
                 canvas.height = windowWidth / aspectRatio;
@@ -153,9 +152,8 @@
                 canvas.width = windowHeight * aspectRatio;
             }
 
-            scaleFactor = canvas.width / img.width;  // Set scale factor based on canvas width to image width ratio
-
-            redrawCanvas();  // Redraw everything with updated scale factor
+            scaleFactor = canvas.width / img.width;
+            redrawCanvas();
         }
 
         fileInput.addEventListener('change', (event) => {
@@ -164,7 +162,7 @@
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     img.onload = () => {
-                        resizeCanvas(); // Adjust canvas size based on image
+                        resizeCanvas();
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     };
                     img.src = e.target.result;
@@ -173,7 +171,6 @@
             }
         });
 
-        // Handle resizing of window
         window.addEventListener('resize', () => {
             if (img.src) {
                 resizeCanvas();
@@ -193,27 +190,24 @@
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
 
-            // Clear the canvas and redraw the image
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-            // Draw previously drawn regions with semi-transparent outlines
             regions.forEach(region => {
                 const scaledX = region.x * scaleFactor;
                 const scaledY = region.y * scaleFactor;
                 const scaledWidth = region.width * scaleFactor;
                 const scaledHeight = region.height * scaleFactor;
 
-                ctx.strokeStyle = `${region.color}80`; // Semi-transparent outline
+                ctx.strokeStyle = `${region.color}80`;
                 ctx.lineWidth = 2;
-                ctx.setLineDash([6, 3]); // Dashed line for previously drawn regions
+                ctx.setLineDash([6, 3]);
                 ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
             });
 
-            // Draw the rectangle as the user drags for the new region
             ctx.strokeStyle = selectedRegion ? selectedRegion.color : '#ff0000';
             ctx.lineWidth = 2;
-            ctx.setLineDash([6, 3]); // Dashed line
+            ctx.setLineDash([6, 3]);
             ctx.strokeRect(startX, startY, x - startX, y - startY);
         });
 
@@ -225,121 +219,107 @@
             const endY = event.clientY - rect.top;
 
             const region = {
-                x: Math.min(startX, endX) / scaleFactor,  // Convert to original image scale
-                y: Math.min(startY, endY) / scaleFactor,  // Convert to original image scale
-                width: Math.abs(endX - startX) / scaleFactor,  // Convert to original image scale
-                height: Math.abs(endY - startY) / scaleFactor,  // Convert to original image scale
+                x: Math.min(startX, endX) / scaleFactor,
+                y: Math.min(startY, endY) / scaleFactor,
+                width: Math.abs(endX - startX) / scaleFactor,
+                height: Math.abs(endY - startY) / scaleFactor,
                 name: '',
-                color: '#ff0000'  // default red color
+                color: '#ff0000'
             };
 
-            // Prompt user to enter a name for the region
             const regionName = prompt('Enter a name for this region:');
             if (regionName) {
                 region.name = regionName;
-
-                // Immediately trigger color selection after entering the name
                 selectedRegion = region;
-                openColorModal(region.color);  // Open color picker modal after name is entered
-
+                openColorModal(region.color);
                 regions.push(region);
 
-                // Add the region to the table
-                const row = regionTable.insertRow();
-                row.insertCell(0).textContent = region.name;
-                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
-                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
-
-                // Add new column to show color
-                const colorCell = row.insertCell(3);
-                const colorBox = document.createElement('div');
-                colorBox.classList.add('color-box');
-                colorBox.style.backgroundColor = region.color; // Set the background color of the box
-                colorCell.appendChild(colorBox);  // Add the colored box to the table
-
-                // Add action button for changing the color of the region
-                const actionCell = row.insertCell(4);
-
-                // Color change button
-                const colorButton = document.createElement('button');
-                colorButton.textContent = 'Change Color';
-                colorButton.addEventListener('click', () => {
-                    selectedRegion = region;  // Set selectedRegion to the correct region
-                    openColorModal(region.color); // Open modal with current color
-                });
-                actionCell.appendChild(colorButton);
-
-                // Delete button
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Delete';
-                deleteButton.addEventListener('click', () => {
-                    // Remove the region from the array
-                    regions = regions.filter(r => r !== region);
-
-                    // Remove the corresponding row from the table
-                    regionTable.deleteRow(row.rowIndex);
-
-                    redrawCanvas();  // Redraw the canvas to reflect the deletion
-                });
-                actionCell.appendChild(deleteButton);
+                addRegionToTable(region);
             }
 
-            redrawCanvas();  // Redraw canvas after releasing the mouse
+            redrawCanvas();
         });
 
-        // Function to open the color picker modal
         function openColorModal(currentColor) {
-            popupColorInput.value = currentColor; // Set the color input to the current region color
-            colorModal.style.display = "block"; // Show the modal
+            popupColorInput.value = currentColor;
+            colorModal.style.display = "block";
         }
 
-        // Close the modal
         closeModalButton.addEventListener('click', () => {
             colorModal.style.display = "none";
         });
 
-        // Apply the selected color and close modal
         applyColorButton.addEventListener('click', () => {
             if (selectedRegion) {
-                selectedRegion.color = popupColorInput.value; // Update the region's color
+                selectedRegion.color = popupColorInput.value;
 
-                // Find the corresponding row in the table and update the color cell
                 const regionRows = regionTable.getElementsByTagName('tr');
                 for (let i = 0; i < regionRows.length; i++) {
                     const row = regionRows[i];
                     if (row.cells[0].textContent === selectedRegion.name) {
-                        row.cells[3].querySelector('.color-box').style.backgroundColor = selectedRegion.color;  // Update the color box in the table
+                        row.cells[3].querySelector('.color-box').style.backgroundColor = selectedRegion.color;
                         break;
                     }
                 }
 
-                redrawCanvas(); // Redraw with the updated color
+                redrawCanvas();
             }
-            colorModal.style.display = "none"; // Close the modal
+            colorModal.style.display = "none";
         });
 
-        // Redraw the canvas with updated scaling
+        function addRegionToTable(region) {
+            const row = regionTable.insertRow();
+            row.insertCell(0).textContent = region.name;
+            row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
+            row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
+
+            const colorCell = row.insertCell(3);
+            const colorBox = document.createElement('div');
+            colorBox.classList.add('color-box');
+            colorBox.style.backgroundColor = region.color;
+            colorCell.appendChild(colorBox);
+
+            const actionCell = row.insertCell(4);
+            const colorButton = document.createElement('button');
+            colorButton.textContent = 'Change Color';
+            colorButton.addEventListener('click', () => {
+                selectedRegion = region;
+                openColorModal(region.color);
+            });
+            actionCell.appendChild(colorButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.addEventListener('click', () => {
+                const confirmDelete = window.confirm(`Are you sure you want to delete the region "${region.name}"?`);
+                if (confirmDelete) {
+                    regions = regions.filter(r => r !== region);
+                    row.remove();
+                    redrawCanvas();
+                }
+            });
+            actionCell.appendChild(deleteButton);
+        }
+
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // Redraw the original image
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-            // Redraw all regions with their assigned colors
             regions.forEach(region => {
                 const scaledX = region.x * scaleFactor;
                 const scaledY = region.y * scaleFactor;
                 const scaledWidth = region.width * scaleFactor;
                 const scaledHeight = region.height * scaleFactor;
 
-                ctx.fillStyle = `${region.color}80`;  // Use semi-transparent color (80 hex = 50% transparency)
+                ctx.fillStyle = `${region.color}80`;
                 ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
-                // Optional: add a border for better visibility
-                ctx.strokeStyle = 'black'; // Border color
+                ctx.strokeStyle = 'black';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
 
-                ctx.fillStyle = 'black'; // Reset fill for text
-                ctx.fillText(region.name, scaledX + 5, scaledY + 15);  // Draw the name inside the region
+                ctx.fillStyle = 'black';
+                ctx.fillText(region.name, scaledX + 5, scaledY + 15);
             });
         }
     </script>
