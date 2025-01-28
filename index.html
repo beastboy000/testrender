@@ -288,6 +288,7 @@
             });
             actionCell.appendChild(colorButton);
 
+            // Add spacing between buttons
             const deleteButton = document.createElement('button');
             deleteButton.textContent = 'Delete';
             deleteButton.addEventListener('click', () => {
@@ -298,6 +299,9 @@
                     redrawCanvas();
                 }
             });
+
+            // Add a margin to the delete button for spacing
+            deleteButton.style.marginLeft = '10px';  // Adjust this value as needed
             actionCell.appendChild(deleteButton);
         }
 
