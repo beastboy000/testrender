@@ -112,7 +112,6 @@
         </tbody>
     </table>
 
-    <!-- Modal for Color Picker -->
     <div id="colorModal" class="modal">
         <div class="modal-content">
             <span class="close" id="closeModal">&times;</span>
@@ -121,6 +120,8 @@
             <button id="applyColor">Apply Color</button>
         </div>
     </div>
+
+    <button id="clearButton">Clear Regions</button>
 
     <script>
         const canvas = document.getElementById('image-canvas');
@@ -131,12 +132,13 @@
         const popupColorInput = document.getElementById('popupColorInput');
         const applyColorButton = document.getElementById('applyColor');
         const closeModalButton = document.getElementById('closeModal');
+        const clearButton = document.getElementById('clearButton');
         let img = new Image();
         let regions = [];
         let isDrawing = false;
         let startX, startY;
-        let selectedRegion = null; 
-        let scaleFactor = 1;  
+        let selectedRegion = null;
+        let scaleFactor = 1;
 
         // Adjust canvas size to match image and window size
         function resizeCanvas() {
@@ -232,9 +234,41 @@
                 region.name = regionName;
                 selectedRegion = region;
                 openColorModal(region.color);
+
                 regions.push(region);
 
-                addRegionToTable(region);
+                const row = regionTable.insertRow();
+                row.insertCell(0).textContent = region.name;
+                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
+                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
+
+                const colorCell = row.insertCell(3);
+                const colorBox = document.createElement('div');
+                colorBox.classList.add('color-box');
+                colorBox.style.backgroundColor = region.color;
+                colorCell.appendChild(colorBox);
+
+                const actionCell = row.insertCell(4);
+                const colorButton = document.createElement('button');
+                colorButton.textContent = 'Change Color';
+                colorButton.addEventListener('click', () => {
+                    selectedRegion = region;
+                    openColorModal(region.color);
+                });
+                actionCell.appendChild(colorButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => {
+                    const confirmDelete = confirm(`Are you sure you want to delete the region "${region.name}"?`);
+                    if (confirmDelete) {
+                        regions = regions.filter(r => r !== region);
+                        regionTable.deleteRow(row.rowIndex - 1);
+                        redrawCanvas();
+                        localStorage.setItem('regions', JSON.stringify(regions));
+                    }
+                });
+                actionCell.appendChild(deleteButton);
             }
 
             redrawCanvas();
@@ -252,7 +286,6 @@
         applyColorButton.addEventListener('click', () => {
             if (selectedRegion) {
                 selectedRegion.color = popupColorInput.value;
-
                 const regionRows = regionTable.getElementsByTagName('tr');
                 for (let i = 0; i < regionRows.length; i++) {
                     const row = regionRows[i];
@@ -263,47 +296,10 @@
                 }
 
                 redrawCanvas();
+                localStorage.setItem('regions', JSON.stringify(regions));
             }
             colorModal.style.display = "none";
         });
-
-        function addRegionToTable(region) {
-            const row = regionTable.insertRow();
-            row.insertCell(0).textContent = region.name;
-            row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
-            row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
-
-            const colorCell = row.insertCell(3);
-            const colorBox = document.createElement('div');
-            colorBox.classList.add('color-box');
-            colorBox.style.backgroundColor = region.color;
-            colorCell.appendChild(colorBox);
-
-            const actionCell = row.insertCell(4);
-            const colorButton = document.createElement('button');
-            colorButton.textContent = 'Change Color';
-            colorButton.addEventListener('click', () => {
-                selectedRegion = region;
-                openColorModal(region.color);
-            });
-            actionCell.appendChild(colorButton);
-
-            // Add spacing between buttons
-            const deleteButton = document.createElement('button');
-            deleteButton.textContent = 'Delete';
-            deleteButton.addEventListener('click', () => {
-                const confirmDelete = window.confirm(`Are you sure you want to delete the region "${region.name}"?`);
-                if (confirmDelete) {
-                    regions = regions.filter(r => r !== region);
-                    row.remove();
-                    redrawCanvas();
-                }
-            });
-
-            // Add a margin to the delete button for spacing
-            deleteButton.style.marginLeft = '10px';  // Adjust this value as needed
-            actionCell.appendChild(deleteButton);
-        }
 
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -326,6 +322,20 @@
                 ctx.fillText(region.name, scaledX + 5, scaledY + 15);
             });
         }
+
+        // Clear Regions Button Functionality
+        clearButton.addEventListener('click', () => {
+            const confirmClear = confirm("Are you sure you want to clear all regions?");
+            if (confirmClear) {
+                const confirmFinalClear = confirm("This action is irreversible. Are you sure you want to clear the regions?");
+                if (confirmFinalClear) {
+                    regions = [];  // Clear the regions array
+                    regionTable.innerHTML = '';  // Clear the region table
+                    redrawCanvas();  // Redraw the canvas without regions
+                    localStorage.removeItem('regions');  // Remove the regions from localStorage
+                }
+            }
+        });
     </script>
 </body>
 </html>
