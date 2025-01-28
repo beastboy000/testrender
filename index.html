@@ -88,6 +88,19 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        /* New Style for Buttons */
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            width: 80%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .button-container button {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -97,6 +110,13 @@
     </div>
 
     <canvas id="image-canvas"></canvas>
+
+    <!-- Buttons Container -->
+    <div class="button-container">
+        <button id="clearButton">Clear Regions</button>
+        <button id="saveButton">Save Progress</button>
+        <button id="resetButton">Reset</button> <!-- Reset Button -->
+    </div>
 
     <table id="region-table">
         <thead>
@@ -120,10 +140,6 @@
             <button id="applyColor">Apply Color</button>
         </div>
     </div>
-
-    <button id="clearButton">Clear Regions</button>
-    <button id="saveButton">Save Progress</button>
-    <button id="resetButton">Reset</button> <!-- Reset Button -->
 
     <script>
         const canvas = document.getElementById('image-canvas');
