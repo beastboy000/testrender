@@ -104,7 +104,7 @@
                 <th>Region Name</th>
                 <th>Position (X, Y)</th>
                 <th>Size (Width, Height)</th>
-                <th>Current Color</th> <!-- New column for color -->
+                <th>Current Color</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -259,6 +259,8 @@
 
                 // Add action button for changing the color of the region
                 const actionCell = row.insertCell(4);
+
+                // Color change button
                 const colorButton = document.createElement('button');
                 colorButton.textContent = 'Change Color';
                 colorButton.addEventListener('click', () => {
@@ -266,6 +268,20 @@
                     openColorModal(region.color); // Open modal with current color
                 });
                 actionCell.appendChild(colorButton);
+
+                // Delete button
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => {
+                    // Remove the region from the array
+                    regions = regions.filter(r => r !== region);
+
+                    // Remove the corresponding row from the table
+                    regionTable.deleteRow(row.rowIndex);
+
+                    redrawCanvas();  // Redraw the canvas to reflect the deletion
+                });
+                actionCell.appendChild(deleteButton);
             }
 
             redrawCanvas();  // Redraw canvas after releasing the mouse
