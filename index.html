@@ -122,6 +122,7 @@
     </div>
 
     <button id="clearButton">Clear Regions</button>
+    <button id="saveButton">Save Progress</button>
 
     <script>
         const canvas = document.getElementById('image-canvas');
@@ -133,6 +134,7 @@
         const applyColorButton = document.getElementById('applyColor');
         const closeModalButton = document.getElementById('closeModal');
         const clearButton = document.getElementById('clearButton');
+        const saveButton = document.getElementById('saveButton');
         let img = new Image();
         let regions = [];
         let isDrawing = false;
@@ -320,6 +322,60 @@
 
                 ctx.fillStyle = 'black';
                 ctx.fillText(region.name, scaledX + 5, scaledY + 15);
+            });
+        }
+
+        // Save Progress Button functionality
+        saveButton.addEventListener('click', () => {
+            localStorage.setItem('regions', JSON.stringify(regions));
+            alert("Progress saved successfully!");
+        });
+
+        // Load Progress from Local Storage
+        window.addEventListener('load', () => {
+            const savedRegions = JSON.parse(localStorage.getItem('regions'));
+            if (savedRegions) {
+                regions = savedRegions;
+                redrawCanvas();
+                updateRegionTable();
+            }
+        });
+
+        function updateRegionTable() {
+            regionTable.innerHTML = ''; // Clear current table rows
+            regions.forEach(region => {
+                const row = regionTable.insertRow();
+                row.insertCell(0).textContent = region.name;
+                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
+                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
+
+                const colorCell = row.insertCell(3);
+                const colorBox = document.createElement('div');
+                colorBox.classList.add('color-box');
+                colorBox.style.backgroundColor = region.color;
+                colorCell.appendChild(colorBox);
+
+                const actionCell = row.insertCell(4);
+                const colorButton = document.createElement('button');
+                colorButton.textContent = 'Change Color';
+                colorButton.addEventListener('click', () => {
+                    selectedRegion = region;
+                    openColorModal(region.color);
+                });
+                actionCell.appendChild(colorButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => {
+                    const confirmDelete = confirm(`Are you sure you want to delete the region "${region.name}"?`);
+                    if (confirmDelete) {
+                        regions = regions.filter(r => r !== region);
+                        regionTable.deleteRow(row.rowIndex - 1);
+                        redrawCanvas();
+                        localStorage.setItem('regions', JSON.stringify(regions));
+                    }
+                });
+                actionCell.appendChild(deleteButton);
             });
         }
 
