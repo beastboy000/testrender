@@ -123,6 +123,7 @@
 
     <button id="clearButton">Clear Regions</button>
     <button id="saveButton">Save Progress</button>
+    <button id="resetButton">Reset</button> <!-- Reset Button -->
 
     <script>
         const canvas = document.getElementById('image-canvas');
@@ -135,6 +136,7 @@
         const closeModalButton = document.getElementById('closeModal');
         const clearButton = document.getElementById('clearButton');
         const saveButton = document.getElementById('saveButton');
+        const resetButton = document.getElementById('resetButton'); // Reset button element
         let img = new Image();
         let regions = [];
         let isDrawing = false;
@@ -400,6 +402,24 @@
                     regionTable.innerHTML = '';  // Clear the region table
                     redrawCanvas();  // Redraw the canvas without regions
                     localStorage.removeItem('regions');  // Remove the regions from localStorage
+                }
+            }
+        });
+
+        // Reset Button Functionality with 3 Confirmation Steps
+        resetButton.addEventListener('click', () => {
+            const confirmReset = confirm("Are you sure you want to reset everything?");
+            if (confirmReset) {
+                const confirmSureReset = confirm("Are you sure? This will reset the image and regions.");
+                if (confirmSureReset) {
+                    const confirmFinalReset = confirm("This action is irreversible. Are you sure you want to reset everything?");
+                    if (confirmFinalReset) {
+                        img = new Image(); // Clear the image
+                        regions = []; // Clear the regions
+                        regionTable.innerHTML = ''; // Clear the region table
+                        localStorage.clear(); // Clear localStorage
+                        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+                    }
                 }
             }
         });
