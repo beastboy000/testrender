@@ -51,6 +51,44 @@
             margin: 0 auto;
         }
 
+        /* Modal (Popup) Style */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
         /* New Style for Buttons */
         .button-container {
             display: flex;
@@ -78,13 +116,11 @@
         <button id="clearButton">Clear Regions</button>
         <button id="saveButton">Save Progress</button>
         <button id="resetButton">Reset</button> <!-- Reset Button -->
-        <button id="markAsDoneButton">Mark as Done</button> <!-- New "Mark as Done" Button -->
     </div>
 
     <table id="region-table">
         <thead>
             <tr>
-                <th><input type="checkbox" id="selectAllCheckbox" /></th> <!-- Checkbox Column -->
                 <th>Region Name</th>
                 <th>Position (X, Y)</th>
                 <th>Size (Width, Height)</th>
@@ -96,16 +132,27 @@
         </tbody>
     </table>
 
+    <div id="colorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <h3>Select a Color</h3>
+            <input type="color" id="popupColorInput" value="#ff0000" />
+            <button id="applyColor">Apply Color</button>
+        </div>
+    </div>
+
     <script>
         const canvas = document.getElementById('image-canvas');
         const ctx = canvas.getContext('2d');
         const fileInput = document.getElementById('file-input');
         const regionTable = document.getElementById('region-table').getElementsByTagName('tbody')[0];
-        const markAsDoneButton = document.getElementById('markAsDoneButton'); // "Mark as Done" Button
+        const colorModal = document.getElementById('colorModal');
+        const popupColorInput = document.getElementById('popupColorInput');
+        const applyColorButton = document.getElementById('applyColor');
+        const closeModalButton = document.getElementById('closeModal');
         const clearButton = document.getElementById('clearButton');
         const saveButton = document.getElementById('saveButton');
         const resetButton = document.getElementById('resetButton'); // Reset button element
-        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
         let img = new Image();
         let regions = [];
         let isDrawing = false;
@@ -200,36 +247,29 @@
                 width: Math.abs(endX - startX) / scaleFactor,
                 height: Math.abs(endY - startY) / scaleFactor,
                 name: '',
-                color: '#ff0000',
-                selected: false // Add 'selected' property for checkboxes
+                color: '#ff0000'
             };
 
             const regionName = prompt('Enter a name for this region:');
             if (regionName) {
                 region.name = regionName;
                 selectedRegion = region;
+                openColorModal(region.color);
+
                 regions.push(region);
 
                 const row = regionTable.insertRow();
-                const checkboxCell = row.insertCell(0);
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.addEventListener('change', () => {
-                    region.selected = checkbox.checked;
-                });
-                checkboxCell.appendChild(checkbox);
+                row.insertCell(0).textContent = region.name;
+                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
+                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
 
-                row.insertCell(1).textContent = region.name;
-                row.insertCell(2).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
-                row.insertCell(3).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
-
-                const colorCell = row.insertCell(4);
+                const colorCell = row.insertCell(3);
                 const colorBox = document.createElement('div');
                 colorBox.classList.add('color-box');
                 colorBox.style.backgroundColor = region.color;
                 colorCell.appendChild(colorBox);
 
-                const actionCell = row.insertCell(5);
+                const actionCell = row.insertCell(4);
                 const colorButton = document.createElement('button');
                 colorButton.textContent = 'Change Color';
                 colorButton.addEventListener('click', () => {
@@ -246,6 +286,7 @@
                         regions = regions.filter(r => r !== region);
                         regionTable.deleteRow(row.rowIndex - 1);
                         redrawCanvas();
+                        localStorage.setItem('regions', JSON.stringify(regions));
                     }
                 });
                 actionCell.appendChild(deleteButton);
@@ -259,70 +300,26 @@
             colorModal.style.display = "block";
         }
 
-        // New "Mark as Done" Button Functionality
-        markAsDoneButton.addEventListener('click', () => {
-            regions.forEach(region => {
-                if (region.selected) {
-                    region.color = '#40eb34'; // Change selected regions color to green
-                }
-            });
-            updateRegionTable(); // Update the table to reflect color change
-            redrawCanvas(); // Redraw the canvas to reflect color change
+        closeModalButton.addEventListener('click', () => {
+            colorModal.style.display = "none";
         });
 
-        function updateRegionTable() {
-            regionTable.innerHTML = ''; // Clear current table rows
-            regions.forEach(region => {
-                const row = regionTable.insertRow();
-                const checkboxCell = row.insertCell(0);
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = region.selected; // Set checkbox state based on the region's selected status
-                checkbox.addEventListener('change', () => {
-                    region.selected = checkbox.checked;
-                });
-                checkboxCell.appendChild(checkbox);
-
-                row.insertCell(1).textContent = region.name;
-                row.insertCell(2).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
-                row.insertCell(3).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
-
-                const colorCell = row.insertCell(4);
-                const colorBox = document.createElement('div');
-                colorBox.classList.add('color-box');
-                colorBox.style.backgroundColor = region.color;
-                colorCell.appendChild(colorBox);
-
-                const actionCell = row.insertCell(5);
-                const colorButton = document.createElement('button');
-                colorButton.textContent = 'Change Color';
-                colorButton.addEventListener('click', () => {
-                    selectedRegion = region;
-                    openColorModal(region.color);
-                });
-                actionCell.appendChild(colorButton);
-
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Delete';
-                deleteButton.addEventListener('click', () => {
-                    const confirmDelete = confirm(`Are you sure you want to delete the region "${region.name}"?`);
-                    if (confirmDelete) {
-                        regions = regions.filter(r => r !== region);
-                        regionTable.deleteRow(row.rowIndex - 1);
-                        redrawCanvas();
+        applyColorButton.addEventListener('click', () => {
+            if (selectedRegion) {
+                selectedRegion.color = popupColorInput.value;
+                const regionRows = regionTable.getElementsByTagName('tr');
+                for (let i = 0; i < regionRows.length; i++) {
+                    const row = regionRows[i];
+                    if (row.cells[0].textContent === selectedRegion.name) {
+                        row.cells[3].querySelector('.color-box').style.backgroundColor = selectedRegion.color;
+                        break;
                     }
-                });
-                actionCell.appendChild(deleteButton);
-            });
-        }
+                }
 
-        // Select/Deselect All Checkbox
-        selectAllCheckbox.addEventListener('change', (event) => {
-            const isChecked = event.target.checked;
-            regions.forEach(region => {
-                region.selected = isChecked;
-            });
-            updateRegionTable(); // Update the table to reflect checkbox state
+                redrawCanvas();
+                localStorage.setItem('regions', JSON.stringify(regions));
+            }
+            colorModal.style.display = "none";
         });
 
         function redrawCanvas() {
@@ -347,13 +344,81 @@
             });
         }
 
+        // Save Progress Button functionality
+        saveButton.addEventListener('click', () => {
+            localStorage.setItem('regions', JSON.stringify(regions));
+            localStorage.setItem('uploadedImage', img.src);  // Save image URL to localStorage
+            alert("Progress saved successfully!");
+        });
+
+        // Load Progress from Local Storage
+        window.addEventListener('load', () => {
+            const savedRegions = JSON.parse(localStorage.getItem('regions'));
+            if (savedRegions) {
+                regions = savedRegions;
+            }
+
+            const savedImage = localStorage.getItem('uploadedImage');
+            if (savedImage) {
+                img.src = savedImage;  // Load the saved image from localStorage
+                img.onload = () => {
+                    resizeCanvas();
+                    redrawCanvas();
+                };
+            }
+
+            updateRegionTable();
+        });
+
+        function updateRegionTable() {
+            regionTable.innerHTML = ''; // Clear current table rows
+            regions.forEach(region => {
+                const row = regionTable.insertRow();
+                row.insertCell(0).textContent = region.name;
+                row.insertCell(1).textContent = `${region.x * scaleFactor}, ${region.y * scaleFactor}`;
+                row.insertCell(2).textContent = `${region.width * scaleFactor}, ${region.height * scaleFactor}`;
+
+                const colorCell = row.insertCell(3);
+                const colorBox = document.createElement('div');
+                colorBox.classList.add('color-box');
+                colorBox.style.backgroundColor = region.color;
+                colorCell.appendChild(colorBox);
+
+                const actionCell = row.insertCell(4);
+                const colorButton = document.createElement('button');
+                colorButton.textContent = 'Change Color';
+                colorButton.addEventListener('click', () => {
+                    selectedRegion = region;
+                    openColorModal(region.color);
+                });
+                actionCell.appendChild(colorButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => {
+                    const confirmDelete = confirm(`Are you sure you want to delete the region "${region.name}"?`);
+                    if (confirmDelete) {
+                        regions = regions.filter(r => r !== region);
+                        regionTable.deleteRow(row.rowIndex - 1);
+                        redrawCanvas();
+                        localStorage.setItem('regions', JSON.stringify(regions));
+                    }
+                });
+                actionCell.appendChild(deleteButton);
+            });
+        }
+
         // Clear Regions Button Functionality
         clearButton.addEventListener('click', () => {
             const confirmClear = confirm("Are you sure you want to clear all regions?");
             if (confirmClear) {
-                regions = [];  // Clear the regions array
-                regionTable.innerHTML = '';  // Clear the region table
-                redrawCanvas();  // Redraw the canvas without regions
+                const confirmFinalClear = confirm("This action is irreversible. Are you sure you want to clear the regions?");
+                if (confirmFinalClear) {
+                    regions = [];  // Clear the regions array
+                    regionTable.innerHTML = '';  // Clear the region table
+                    redrawCanvas();  // Redraw the canvas without regions
+                    localStorage.removeItem('regions');  // Remove the regions from localStorage
+                }
             }
         });
 
@@ -368,7 +433,8 @@
                         img = new Image(); // Clear the image
                         regions = []; // Clear the regions
                         regionTable.innerHTML = ''; // Clear the region table
-                        redrawCanvas(); // Clear the canvas
+                        localStorage.clear(); // Clear localStorage
+                        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
                     }
                 }
             }
