@@ -170,6 +170,7 @@
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     };
                     img.src = e.target.result;
+                    localStorage.setItem('uploadedImage', e.target.result);  // Save image to localStorage
                 };
                 reader.readAsDataURL(file);
             }
@@ -328,6 +329,7 @@
         // Save Progress Button functionality
         saveButton.addEventListener('click', () => {
             localStorage.setItem('regions', JSON.stringify(regions));
+            localStorage.setItem('uploadedImage', img.src);  // Save image URL to localStorage
             alert("Progress saved successfully!");
         });
 
@@ -336,9 +338,18 @@
             const savedRegions = JSON.parse(localStorage.getItem('regions'));
             if (savedRegions) {
                 regions = savedRegions;
-                redrawCanvas();
-                updateRegionTable();
             }
+
+            const savedImage = localStorage.getItem('uploadedImage');
+            if (savedImage) {
+                img.src = savedImage;  // Load the saved image from localStorage
+                img.onload = () => {
+                    resizeCanvas();
+                    redrawCanvas();
+                };
+            }
+
+            updateRegionTable();
         });
 
         function updateRegionTable() {
